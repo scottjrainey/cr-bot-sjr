@@ -6,10 +6,10 @@ const SYSTEM = ``
 const JSON_FORMAT_REQUIREMENT = `Provide your feedback in a strict JSON format with the following structure, one JSON object per review. If there is one or more reviews where \`this.ltgm == false\`, do not incude items where \`this.ltgm == true\`:
 [
   {
-    "lgtm": boolean, // True if the code looks good to merge, false if there are concerns 
+    "lgtm": boolean, // True if the code looks good to merge, false if there are concerns
     "body": string, // Your review comments. Use github markdown syntax in this string with code suggestions handled as commitable changes using the '\`\`\`suggestion' syntax. The suggested code should cover an uninterupeted range of lines. The overall response must be a valid JSON
-    "start_line": int | null // The line number where the code suggestion starts, null if no code suggestion is given
-    "line": int | null // Either the line number where the suggestion ends, or the first line of the chunk if \`this.ltgm == true\`
+    "start_line": int optional // The line number where the code suggestion starts, only provided if a code suggestion is present
+    "line": int // Either the line number where the suggestion ends, or the first line of the chunk if \`this.ltgm == true\`
   },
   ... // Repeat for each review
 ]
