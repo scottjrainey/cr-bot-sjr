@@ -1,15 +1,26 @@
 import { Probot, Context } from "probot";
 
+// TODO something seems off about this import
+import crRequest from "./cr-request.js";
+
 const MAX_PATCH_LENGTH = Infinity;
 
 interface PullRequestReviewComment {
   path: string;
-  position: number;
   body: string;
+  line: number;
+  start_line?: number;
 }
 
 export default (app: Probot) => {
   app.log.info("Probot started...");
+
+  // Bail if there is no OpenAI API key
+  // if (!process.env.OPENAI_API_KEY) {
+  //   app.log.warn("No OpenAI API key found. Aborting code review");
+  //   return;
+  // }
+
   app.on(
     ["pull_request.opened", "pull_request.synchronize"],
     async (context: Context<"pull_request">) => {
@@ -33,8 +44,7 @@ export default (app: Probot) => {
         return "No files changed";
       }
 
-      const comments: PullRequestReviewComment[] = [];
-      changedFiles.forEach((file) => {
+      const fileReviewPromises = changedFiles.flatMap(async (file) => {
         const patch = file.patch || "";
 
         if (file.status !== "modified" && file.status !== "added") {
@@ -46,13 +56,24 @@ export default (app: Probot) => {
           return;
         }
 
-        comments.push({
-          path: file.filename,
-          body: 'This is a comment in the diff',
-          position: patch.split('\n').length - 1,
-        });
-
+        try {
+          const reviewComments = await crRequest(patch);
+          return reviewComments.map(({ body, start_line, line }) => ({
+            path: file.filename,
+            body,
+            line,
+            start_line: line === start_line ? undefined : start_line,
+          }));
+        } catch (e) {
+          app.log.warn(`Failed to create review for ${file.filename}, ${e}}`, e);
+          return null;
+        }
       });
+
+      const reviewArrays = await Promise.all(fileReviewPromises);
+      const results = reviewArrays.flat();
+      // Filter out null/undefined results and add valid comments
+      const comments = results.filter(Boolean) as PullRequestReviewComment[];
       
       try {
         await context.octokit.pulls.createReview({
@@ -61,7 +82,8 @@ export default (app: Probot) => {
           pull_number: pull_request.number,
           body: "Thanks for the PR!",
           event: "COMMENT",
-          commit_id: commits[-1].sha,
+          // commits[-1] is returning `undefined` here, using commits[commits.length - 1] instead
+          commit_id: commits[commits.length - 1].sha,
           comments,
         });  
       } catch (e) {
@@ -71,9 +93,4 @@ export default (app: Probot) => {
       return 'success'
     },
   );
-  // For more information on building apps:
-  // https://probot.github.io/docs/
-
-  // To get your app running against GitHub, see:
-  // https://probot.github.io/docs/development/
 };

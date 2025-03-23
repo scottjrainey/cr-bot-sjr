@@ -1,3 +1,5 @@
+// Token for testing:
+// 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
 import nock from "nock";
 // Requiring our app implementation
 import myProbotApp from "../src/index.js";
@@ -9,6 +11,7 @@ import { fileURLToPath } from "url";
 import { describe, beforeEach, afterEach, test, expect } from "vitest";
 
 import pullRequestOpenedPayload from './fixtures/pull_request.opened.json' assert { type: 'json' };
+import responseCompare from './fixtures/response.compare.json' assert { type: 'json' };
 
 const reviewCreatedBody = {
   body: "Thanks for the PR!",
@@ -50,7 +53,7 @@ describe("My Probot app", () => {
     const head = pullRequestOpenedPayload.pull_request.head.sha;
     const base = pullRequestOpenedPayload.pull_request.base.sha;
     const mock = nock("https://api.github.com")
-      // Test that we correctly return a test token
+      // Handle access tokens
       .post(`/app/installations/${installation_id}/access_tokens`)
       .reply(200, {
         token: "test",
@@ -59,10 +62,11 @@ describe("My Probot app", () => {
         },
       })
 
+      // Get the diff from the pull request
       .get(`/repos/${repo_full_name}/compare/${base}...${head}`)
-      .reply(200)
+      .reply(200, responseCompare)
 
-      // Test that a comment is posted starting a new review
+      // Start a new review with a comment for each file
       .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body: any) => {
         expect(body).toMatchObject(reviewCreatedBody);
         return true;
