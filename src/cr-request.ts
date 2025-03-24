@@ -1,6 +1,7 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
+// These should be moved to a .github/cr-bot-sjr.yml file
 const USER = `Please review the following code patch. Create a review for each chunk in the patch. Focus on potential bugs, risks, and improvement suggestions. If needed, offer code fixes in the return comment with explanations upto 200 words. Otherwise comment ':+1: LGTM':`
 const SYSTEM = ``
 const JSON_FORMAT_REQUIREMENT = `Provide your feedback in a strict JSON format with the following structure, one JSON object per review. If there is one or more reviews where \`this.ltgm == false\`, do not incude items where \`this.ltgm == true\`:
@@ -14,8 +15,6 @@ const JSON_FORMAT_REQUIREMENT = `Provide your feedback in a strict JSON format w
   ... // Repeat for each review
 ]
 Ensure your response is a valid JSON object.`
-// .giitignore globs to include and ignore files
-// const REVIEW_FILES = ''
 
 interface MessageContentReview {
   path: string;
@@ -25,6 +24,7 @@ interface MessageContentReview {
 }
 
 export default async (patch: string) => {
+  // TODO: Enable using other models like Ollma for onprem use
   const model = new ChatOpenAI({
     openAIApiKey: process.env.OPENAI_API_KEY,
     modelName: "gpt-4o-mini",

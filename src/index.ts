@@ -1,7 +1,14 @@
 import { Probot, Context } from "probot";
+import picomatch from "picomatch";
 
 // TODO something seems off about this import
 import crRequest from "./cr-request.js";
+
+// .gitignore globs to include and ignore files
+// TODO need better name for this variable
+const INCLUDE_FILES = '*.js,*.ts';
+
+const isMatch = picomatch(INCLUDE_FILES.split(','));
 
 const MAX_PATCH_LENGTH = Infinity;
 
@@ -39,9 +46,13 @@ export default (app: Probot) => {
       });
       let { files: changedFiles, commits } = data.data;
 
+      // TODO Ensure this is working as expected, there is probably an issue where
+      // the files need their name and path, not just name
+      changedFiles = changedFiles?.filter((file) => isMatch(file.filename));
+
       if (!changedFiles?.length) {
-        app.log.info("No files changed");
-        return "No files changed";
+        app.log.info("No reviewable files changed");
+        return "No reviewablefiles changed";
       }
 
       const fileReviewPromises = changedFiles.flatMap(async (file) => {
