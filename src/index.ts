@@ -1,12 +1,11 @@
 import { Probot, Context } from "probot";
 import picomatch from "picomatch";
 
-// TODO something seems off about this import
 import crRequest from "./cr-request.js";
 
 // .gitignore globs to include and ignore files
-// TODO need better name for this variable
-const INCLUDE_FILES = '*.js,*.ts';
+// TODO: better name for this variable and make configurable
+const INCLUDE_FILES = '**/*.js,**/*.ts';
 
 const isMatch = picomatch(INCLUDE_FILES.split(','));
 
@@ -19,24 +18,31 @@ interface PullRequestReviewComment {
   start_line?: number;
 }
 
-export default (app: Probot) => {
-  app.log.info("Probot started...");
+function formatCommentBody(body: string, suggestion: string = ''): string {
+  return !!suggestion
+    ? `${body}\n\n\`\`\`suggestion\n${suggestion}\n\`\`\`\n`
+    : `${body}\n`;
+}
 
-  // Bail if there is no OpenAI API key
-  // if (!process.env.OPENAI_API_KEY) {
-  //   app.log.warn("No OpenAI API key found. Aborting code review");
-  //   return;
-  // }
+export default (app: Probot) => {
+  const { log } = app;
+  log.info("Probot started...");
 
   app.on(
     ["pull_request.opened", "pull_request.synchronize"],
     async (context: Context<"pull_request">) => {
+      // Bail if there is no OpenAI API key
+      if (!process.env.OPENAI_API_KEY) {
+        log.info("No OpenAI API key found. Skipping code review");
+        return;
+      }
+
       const { owner, repo } = context.repo();
       const { pull_request } = context.payload;
       
       if (pull_request.state == "closed" || pull_request.locked) {
-        app.log.info("PR is closed or locked");
-        return "PR is closed or locked ";
+        log.debug("PR is closed or locked");
+        return;
       }
 
       const data = await context.octokit.repos.compareCommitsWithBasehead({
@@ -46,13 +52,11 @@ export default (app: Probot) => {
       });
       let { files: changedFiles, commits } = data.data;
 
-      // TODO Ensure this is working as expected, there is probably an issue where
-      // the files need their name and path, not just name
       changedFiles = changedFiles?.filter((file) => isMatch(file.filename));
 
       if (!changedFiles?.length) {
-        app.log.info("No reviewable files changed");
-        return "No reviewablefiles changed";
+        log.debug("No reviewable files changed");
+        return;
       }
 
       const fileReviewPromises = changedFiles.flatMap(async (file) => {
@@ -63,21 +67,24 @@ export default (app: Probot) => {
         }
 
         if (!patch || patch.length > MAX_PATCH_LENGTH) {
-          app.log.warn(`Skipping ${file.filename} patch too large`);
+          log.info(!!patch
+            ? `Skipping ${file.filename} patch too large`
+            : `Skipping ${file.filename} no patch found`);
           return;
         }
 
         try {
-          const reviewComments = await crRequest(patch);
-          return reviewComments.map(({ body, start_line, line }) => ({
-            path: file.filename,
-            body,
+          const path = file.filename;
+          const reviewComments = await crRequest(patch, { log, path });
+          return reviewComments.map(({ body, suggestion, start_line, line }) => ({
+            path,
+            body: formatCommentBody(body, suggestion),
             line,
             start_line: line === start_line ? undefined : start_line,
           }));
         } catch (e) {
-          app.log.warn(`Failed to create review for ${file.filename}, ${e}}`, e);
-          return null;
+          log.warn(`Failed to create review for ${file.filename}, ${e}}`, e);
+          return;
         }
       });
 
@@ -85,7 +92,7 @@ export default (app: Probot) => {
       const results = reviewArrays.flat();
       // Filter out null/undefined results and add valid comments
       const comments = results.filter(Boolean) as PullRequestReviewComment[];
-      
+
       try {
         await context.octokit.pulls.createReview({
           repo,
@@ -98,10 +105,10 @@ export default (app: Probot) => {
           comments,
         });  
       } catch (e) {
-        app.log.warn('Failed to create code review', e);
+        log.warn("Failed to create code review", e);
       }
 
-      return 'success'
+      return;
     },
   );
 };
