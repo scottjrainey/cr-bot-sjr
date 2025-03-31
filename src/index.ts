@@ -9,7 +9,10 @@ const INCLUDE_FILES = '**/*.js,**/*.ts';
 
 const isMatch = picomatch(INCLUDE_FILES.split(','));
 
-const MAX_PATCH_LENGTH = Infinity;
+// TODO This is not working as expected
+const MAX_PATCH_LENGTH = process.env.MAX_PATCH_LENGTH
+  ? (Number(process.env.MAX_PATCH_LENGTH) || Infinity)
+  : Infinity;
 
 interface PullRequestReviewComment {
   path: string;
@@ -60,21 +63,21 @@ export default (app: Probot) => {
       }
 
       const fileReviewPromises = changedFiles.flatMap(async (file) => {
-        const patch = file.patch || "";
+        const { filename, patch = "", status } = file;
 
-        if (file.status !== "modified" && file.status !== "added") {
-          return;
+        if (status !== "modified" && status !== "added") {
+          return [];
         }
 
-        if (!patch || patch.length > MAX_PATCH_LENGTH) {
+        if (!patch || patch?.length > MAX_PATCH_LENGTH) {
           log.info(!!patch
-            ? `Skipping ${file.filename} patch too large`
-            : `Skipping ${file.filename} no patch found`);
-          return;
+            ? `Skipping ${filename} patch too large`
+            : `Skipping ${filename} no patch found`);
+          return [];
         }
 
         try {
-          const path = file.filename;
+          const path = filename;
           const reviewComments = await crRequest(patch, { log, path });
           return reviewComments.map(({ body, suggestion, start_line, line }) => ({
             path,
@@ -83,8 +86,8 @@ export default (app: Probot) => {
             start_line: line === start_line ? undefined : start_line,
           }));
         } catch (e) {
-          log.warn(`Failed to create review for ${file.filename}, ${e}}`, e);
-          return;
+          log.warn(`Failed to create review for ${filename}, ${e}}`, e);
+          return [];
         }
       });
 

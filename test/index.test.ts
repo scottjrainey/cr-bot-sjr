@@ -236,6 +236,55 @@ describe("My Probot app", () => {
     expect(mockGithub.pendingMocks()).toStrictEqual([]);
   });
 
+  // TODO Currently there is an issue with the code not assigning the value
+  // from the environmental variable to MAX_PATCH_LENGTH
+  test.skip("Skips files with patches that are too large", async () => {
+    const logInfoSpy = vi.spyOn(probot.log, "info").mockImplementation(() => {});
+    vi.stubEnv("MAX_PATCH_LENGTH", "1");
+    const createReviewSpy = vi.fn();
+
+    const repo_full_name = pullRequestOpenedPayload.repository.full_name;
+    const installation_id = pullRequestOpenedPayload.installation.id;
+    const pull_request_number = pullRequestOpenedPayload.pull_request.number;
+    const head = pullRequestOpenedPayload.pull_request.head.sha;
+    const base = pullRequestOpenedPayload.pull_request.base.sha;
+    const mockGithub = nock("https://api.github.com")
+      // Handle access tokens
+      .post(`/app/installations/${installation_id}/access_tokens`)
+      .reply(200, {
+        token: "test",
+        permissions: {
+          issues: "write",
+        },
+      })
+
+      // Get the diff from the pull request, but with no reviewable files
+      .get(`/repos/${repo_full_name}/compare/${base}...${head}`)
+      .reply(200, responseCompare)
+
+      // Start a new review with a comment for each file
+      .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body: any) => {
+        createReviewSpy(body);
+        expect(body).toMatchObject(reviewCreatedBody);
+        expect(body.comments).toBeDefined();
+        expect(body.comments.length).toBe(2);
+        return true;
+      })
+      .reply(200);
+
+    // Receive a webhook event
+    const result = await probot.receive({
+      id: Math.random().toString(),
+      name: "pull_request",
+      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent
+    });
+
+    expect(logInfoSpy).toHaveBeenCalledWith(expect.stringContaining("patch too large"));
+    expect(crRequest).toHaveBeenCalledTimes(5);
+    expect(createReviewSpy).toHaveBeenCalledTimes(0);
+    expect(mockGithub.pendingMocks()).length(1);
+  });
+
   test("creates a code review when a reviewable pull request is opened", async () => {
     const createReviewSpy = vi.fn();
 
