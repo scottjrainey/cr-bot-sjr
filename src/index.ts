@@ -1,6 +1,6 @@
-import { Probot, Context } from "probot";
+import { Probot, Context, ProbotOctokit } from "probot";
 import picomatch from "picomatch";
-
+import { Request, Response } from "express";
 import crRequest from "./cr-request.js";
 
 // .gitignore globs to include and ignore files
@@ -21,13 +21,15 @@ interface PullRequestReviewComment {
   start_line?: number;
 }
 
+type GitHubEvent = "pull_request" | "issues" | "push";
+
 function formatCommentBody(body: string, suggestion: string = ''): string {
   return !!suggestion
     ? `${body}\n\n\`\`\`suggestion\n${suggestion}\n\`\`\`\n`
     : `${body}\n`;
 }
 
-export default (app: Probot) => {
+const probotApp = (app: Probot) => {
   const { log } = app;
   log.info("Probot started...");
 
@@ -115,3 +117,44 @@ export default (app: Probot) => {
     },
   );
 };
+
+export const githubWebhook = async (req: Request, res: Response) => {
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+
+  try {
+    if (req.method !== 'POST') {
+      res.status(405).send('Method not allowed');
+      return;
+    }
+
+    const probot = new Probot({
+      appId: process.env.APP_ID || '',
+      privateKey: process.env.PRIVATE_KEY || '',
+      secret: webhookSecret,
+      Octokit: ProbotOctokit,
+    });
+
+    probot.load(probotApp);
+
+    const name = req.headers["x-github-event"] as GitHubEvent;
+    const id = req.headers["x-github-delivery"] as string;
+
+    if (!name || !id) {
+      res.status(400).send('Missing GitHub event headers');
+      return;
+    }
+
+    await probot.webhooks.receive({
+      id,
+      name,
+      payload: req.body,
+    });
+
+    res.status(200).send('Webhook processed successfully');
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    res.status(500).send(`Error processing webhook: ${error}`);
+  }
+};
+
+export default probotApp;
