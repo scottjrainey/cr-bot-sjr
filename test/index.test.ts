@@ -25,6 +25,14 @@ const privateKey = fs.readFileSync(
   "utf-8",
 );
 
+const mockConfigSettingsBuffer = Buffer.from(JSON.stringify({
+  prompts: {
+    system: "You are a code reviewer.",
+    user: "Review the following code diff:",
+    jsonFormatRequirement: "Return the review comments in JSON format.",
+  },
+}));
+
 describe("My Probot app", () => {
   let probot: Probot;
   let myProbotApp: any;
@@ -202,6 +210,10 @@ describe("My Probot app", () => {
         },
       })
 
+      // Mock the config file request
+      .get(`/repos/${repo_full_name}/contents/.github%2Fcr-bot-sjr.yml`)
+      .reply(200, { content: mockConfigSettingsBuffer })
+
       // Get the diff from the pull request, but with no reviewable files
       .get(`/repos/${repo_full_name}/compare/${base}...${head}`)
       .reply(200, {
@@ -258,6 +270,10 @@ describe("My Probot app", () => {
         },
       })
 
+      // Mock the config file request
+      .get(`/repos/${repo_full_name}/contents/.github%2Fcr-bot-sjr.yml`)
+      .reply(200, { content: mockConfigSettingsBuffer })
+
       // Get the diff from the pull request, but with no reviewable files
       .get(`/repos/${repo_full_name}/compare/${base}...${head}`)
       .reply(200, responseCompare)
@@ -302,6 +318,10 @@ describe("My Probot app", () => {
           issues: "write",
         },
       })
+
+      // Mock the config file request
+      .get(`/repos/${repo_full_name}/contents/.github%2Fcr-bot-sjr.yml`)
+      .reply(200, { content: mockConfigSettingsBuffer })
 
       // Get the diff from the pull request
       .get(`/repos/${repo_full_name}/compare/${base}...${head}`)

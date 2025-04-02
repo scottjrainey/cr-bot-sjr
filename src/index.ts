@@ -1,7 +1,7 @@
 import { Probot, Context, ProbotOctokit } from "probot";
 import picomatch from "picomatch";
 import { Request, Response } from "express";
-import crRequest from "./cr-request.js";
+import crRequest, { PromptStrings } from "./cr-request.js";
 
 // .gitignore globs to include and ignore files
 // TODO: better name for this variable and make configurable
@@ -19,6 +19,10 @@ interface PullRequestReviewComment {
   body: string;
   line: number;
   start_line?: number;
+}
+
+interface ConfigSettings {
+  prompts: PromptStrings;
 }
 
 type GitHubEvent = "pull_request" | "issues" | "push";
@@ -64,6 +68,11 @@ const probotApp = (app: Probot) => {
         return;
       }
 
+      // Assuming config is not null since that file exists in the repo
+      // with default values
+      const config = (await context.config('cr-bot-sjr.yml')) as ConfigSettings;
+      const { prompts } = config
+
       const fileReviewPromises = changedFiles.flatMap(async (file) => {
         const { filename, patch = "", status } = file;
 
@@ -80,7 +89,7 @@ const probotApp = (app: Probot) => {
 
         try {
           const path = filename;
-          const reviewComments = await crRequest(patch, { log, path });
+          const reviewComments = await crRequest(patch, { log, path, prompts });
           return reviewComments.map(({ body, suggestion, start_line, line }) => ({
             path,
             body: formatCommentBody(body, suggestion),
