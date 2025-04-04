@@ -1,4 +1,4 @@
-import { Probot, Context, ProbotOctokit } from "probot";
+import { Probot, Context, createNodeMiddleware, createProbot } from "probot";
 import picomatch from "picomatch";
 import { Request, Response } from "express";
 import crRequest, { PromptStrings } from "./cr-request.js";
@@ -24,8 +24,6 @@ interface PullRequestReviewComment {
 interface ConfigSettings {
   prompts: PromptStrings;
 }
-
-type GitHubEvent = "pull_request" | "issues" | "push";
 
 function formatCommentBody(body: string, suggestion: string = ''): string {
   return !!suggestion
@@ -127,43 +125,15 @@ const probotApp = (app: Probot) => {
   );
 };
 
-export const githubWebhook = async (req: Request, res: Response) => {
-  const webhookSecret = process.env.WEBHOOK_SECRET;
+export const webhookHandler = (req: Request, res: Response) => {
+  // Create a probot instance using the environment variables
+  const probot = createProbot();
 
-  try {
-    if (req.method !== 'POST') {
-      res.status(405).send('Method not allowed');
-      return;
-    }
+  // Use the middleware approach which is more efficient for serverless
+  const middleware = createNodeMiddleware(probotApp, { probot });
 
-    const probot = new Probot({
-      appId: process.env.APP_ID || '',
-      privateKey: process.env.PRIVATE_KEY || '',
-      secret: webhookSecret,
-      Octokit: ProbotOctokit,
-    });
-
-    probot.load(probotApp);
-
-    const name = req.headers["x-github-event"] as GitHubEvent;
-    const id = req.headers["x-github-delivery"] as string;
-
-    if (!name || !id) {
-      res.status(400).send('Missing GitHub event headers');
-      return;
-    }
-
-    await probot.webhooks.receive({
-      id,
-      name,
-      payload: req.body,
-    });
-
-    res.status(200).send('Webhook processed successfully');
-  } catch (error) {
-    console.error('Error processing webhook:', error);
-    res.status(500).send(`Error processing webhook: ${error}`);
-  }
+  // Call the middleware with the request and response
+  middleware(req, res);
 };
 
 export default probotApp;
