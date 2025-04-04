@@ -17,14 +17,17 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@langchain/openai": "^0.4.5",
+    "@langchain/core": "^0.3.43",
+    "@langchain/openai": "^0.4.9",
     "langchain": "^0.3.19",
-    "openai": "^4.89.0",
+    "openai": "^4.91.1",
     "picomatch": "^4.0.2",
-    "probot": "^13.0.1"
+    "probot": "^13.0.1",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@octokit/webhooks-types": "^7.6.1",
+    "@types/express": "^5.0.1",
     "@types/node": "^20.0.0",
     "@types/picomatch": "^3.0.2",
     "nock": "^14.0.0-beta.5",
