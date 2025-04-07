@@ -1,0 +1,7 @@
+onlyBuiltDependencies:
+  - '@biomejs/biome'
+  - es5-ext
+  - esbuild
+  - serverless
+ignoredBuiltDependencies:
+  - aws-sdk

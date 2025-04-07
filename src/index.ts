@@ -1,7 +1,7 @@
-import { Probot, Context, createNodeMiddleware, createProbot } from "probot";
+import { type Probot, type Context, createNodeMiddleware, createProbot } from "probot";
 import picomatch from "picomatch";
-import { Request, Response } from "express";
-import crRequest, { PromptStrings } from "./cr-request.js";
+import type { Request, Response } from "express";
+import crRequest, { type PromptStrings } from "./cr-request.js";
 
 // .gitignore globs to include and ignore files
 // TODO: better name for this variable and make configurable
@@ -11,8 +11,8 @@ const isMatch = picomatch(INCLUDE_FILES.split(','));
 
 // TODO This is not working as expected
 const MAX_PATCH_LENGTH = process.env.MAX_PATCH_LENGTH
-  ? (Number(process.env.MAX_PATCH_LENGTH) || Infinity)
-  : Infinity;
+  ? (Number(process.env.MAX_PATCH_LENGTH) || Number.POSITIVE_INFINITY)
+  : Number.POSITIVE_INFINITY;
 
 interface PullRequestReviewComment {
   path: string;
@@ -25,8 +25,8 @@ interface ConfigSettings {
   prompts: PromptStrings;
 }
 
-function formatCommentBody(body: string, suggestion: string = ''): string {
-  return !!suggestion
+function formatCommentBody(body: string, suggestion = '') {
+  return suggestion
     ? `${body}\n\n\`\`\`suggestion\n${suggestion}\n\`\`\`\n`
     : `${body}\n`;
 }
@@ -47,7 +47,7 @@ const probotApp = (app: Probot) => {
       const { owner, repo } = context.repo();
       const { pull_request } = context.payload;
       
-      if (pull_request.state == "closed" || pull_request.locked) {
+      if (pull_request.state === "closed" || pull_request.locked) {
         log.debug("PR is closed or locked");
         return;
       }
@@ -79,7 +79,7 @@ const probotApp = (app: Probot) => {
         }
 
         if (!patch || patch?.length > MAX_PATCH_LENGTH) {
-          log.info(!!patch
+          log.info(patch
             ? `Skipping ${filename} patch too large`
             : `Skipping ${filename} no patch found`);
           return [];
