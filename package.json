@@ -13,6 +13,9 @@
   ],
   "scripts": {
     "build": "tsc",
+    "check": "biome check ./src",
+    "format": "biome format ./src",
+    "lint": "biome lint ./src",
     "start": "probot run ./lib/index.js",
     "test": "vitest"
   },
@@ -26,6 +29,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "@octokit/webhooks-types": "^7.6.1",
     "@types/express": "^5.0.1",
     "@types/node": "^20.0.0",

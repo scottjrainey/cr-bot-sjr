@@ -1,6 +1,6 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { Logger } from "probot";
+import type { Logger } from "probot";
 
 interface MessageContentReview {
   path: string;
