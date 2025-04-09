@@ -11,6 +11,7 @@
     "github",
     "probot-app"
   ],
+  "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
     "check": "biome check ./src",
@@ -20,6 +21,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@google-cloud/functions-framework": "^3.5.1",
     "@langchain/core": "^0.3.43",
     "@langchain/openai": "^0.4.9",
     "langchain": "^0.3.19",
@@ -35,8 +37,6 @@
     "@types/node": "^20.0.0",
     "@types/picomatch": "^3.0.2",
     "nock": "^14.0.0-beta.5",
-    "serverless": "^3.40.0",
-    "serverless-google-cloudfunctions": "^4.6.0",
     "smee-client": "^2.0.0",
     "typescript": "^5.3.3",
     "vitest": "^3.0.9"

@@ -1,0 +1,75 @@
+# .github/workflows/deploy.yml
+
+name: Deploy to Google Cloud Functions
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  actions: write
+  contents: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install
+        
+      - name: Build TypeScript
+        run: pnpm run build
+        
+      - name: Setup Google Cloud Auth
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+      
+      - name: Deploy to Cloud Functions
+        run: |
+          DEPLOY_OUTPUT=$(gcloud functions deploy cr-bot-sjr-demo \
+            --gen2 \
+            --runtime=nodejs20 \
+            --region=${{ secrets.GCP_REGION }} \
+            --source=. \
+            --entry-point=webhookHandler \
+            --trigger-http \
+            --allow-unauthenticated \
+            --set-env-vars="APP_ID=${{ secrets.APP_ID }}" \
+            --set-env-vars="PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" \
+            --set-env-vars="WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}" \
+            --set-env-vars="OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}")
+          FUNCTION_URL=$(echo "$DEPLOY_OUTPUT" | grep "^url" | awk '{print $2}')
+          echo "FUNCTION_URL=$FUNCTION_URL" >> $GITHUB_ENV
+
+      # - name: Set Webhook URL
+      #   run: |
+      #     gh auth status
+      #     gh api \
+      #       --method PATCH \
+      #       -H "Accept: application/vnd.github+json" \
+      #       /app/hook/config \
+      #       -f url="$FUNCTION_URL" \
+      #       -f content_type="json" 
+      #   env:
+      #     FUNCTION_URL: ${{ env.FUNCTION_URL }}
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
