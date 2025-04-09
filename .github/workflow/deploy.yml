@@ -1,0 +1,52 @@
+# .github/workflows/deploy.yml
+
+name: Deploy to Google Cloud Functions
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          run_install: false
+          
+      - name: Install dependencies
+        run: pnpm install
+        
+      - name: Build TypeScript
+        run: pnpm run build
+        
+      - name: Setup Google Cloud Auth
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+      
+      - name: Deploy to Cloud Functions
+        run: |
+          gcloud functions deploy cr-bot-sjr \
+            --gen2 \
+            --runtime=nodejs20 \
+            --region=${{ secrets.GCP_REGION }} \
+            --source=. \
+            --entry-point=webhookHandler \
+            --trigger-http \
+            --allow-unauthenticated \
+            --set-env-vars="APP_ID=${{ secrets.APP_ID }},PRIVATE_KEY=${{ secrets.PRIVATE_KEY }},WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
