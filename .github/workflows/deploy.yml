@@ -25,11 +25,6 @@ jobs:
           node-version: 20
           cache: 'pnpm'
       
-      # - name: Add pnpm to PATH
-        # run: echo "$(npm bin -g)\n$PATH"
-        # run: echo $PATH
-        # run: export PATH=$(npm bin -g):$PATH
-
       - name: Install dependencies
         run: pnpm install
         
