@@ -13,20 +13,20 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-          cache: 'pnpm'
-      
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 8
           run_install: false
 
-      - name: Add pnpm to PATH
-        run: echo "$(npm bin -g)\n$PATH"
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      
+      # - name: Add pnpm to PATH
+        # run: echo "$(npm bin -g)\n$PATH"
         # run: echo $PATH
         # run: export PATH=$(npm bin -g):$PATH
 
