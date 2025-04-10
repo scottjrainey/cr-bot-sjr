@@ -26,8 +26,8 @@ jobs:
           run_install: false
 
       - name: Add pnpm to PATH
-        run: echo $(npm bin -g)
-        run: echo $PATH
+        run: echo "$(npm bin -g)\n$PATH"
+        # run: echo $PATH
         # run: export PATH=$(npm bin -g):$PATH
 
       - name: Install dependencies
