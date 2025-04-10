@@ -28,6 +28,8 @@ If you have suggestions for how cr-bot-sjr could be improved, or want to report 
 
 For more, check out the [Contributing Guide](CONTRIBUTING.md).
 
+Bump
+
 ## License
 
 [ISC](LICENSE) © 2025 scottjrainey
