@@ -3,5 +3,7 @@ npm-debug.log
 *.pem
 !mock-cert.pem
 .env
+.env-clean
+.env-export
 coverage
 lib

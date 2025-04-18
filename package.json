@@ -11,6 +11,7 @@
     "github",
     "probot-app"
   ],
+  "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
     "check": "biome check ./src",
@@ -20,6 +21,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@google-cloud/functions-framework": "^3.5.1",
     "@langchain/core": "^0.3.43",
     "@langchain/openai": "^0.4.9",
     "langchain": "^0.3.19",
