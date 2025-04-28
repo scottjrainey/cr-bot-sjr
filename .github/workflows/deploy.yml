@@ -52,7 +52,9 @@ jobs:
             --set-env-vars="APP_ID=${{ secrets.APP_ID }},PRIVATE_KEY=${{ secrets.PRIVATE_KEY }},WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}")
           echo "---THIS IS DEPLOY_OUTPUT---"
           echo "$DEPLOY_OUTPUT"
-          FUNCTION_URL=$(echo "$DEPLOY_OUTPUT" | grep "httpsTrigger.url" | awk '{print $2}')
+          FUNCTION_URL=$(echo "$DEPLOY_OUTPUT" | grep "^url" | awk '{print $2}')
+          echo "---THIS IS FUNCTION_URL---"
+          echo "$FUNCTION_URL"
           echo "FUNCTION_URL=$FUNCTION_URL" >> $GITHUB_ENV
 
       - name: Store Function URL in GitHub Variable
