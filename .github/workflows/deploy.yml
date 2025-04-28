@@ -41,7 +41,7 @@ jobs:
       
       - name: Deploy to Cloud Functions
         run: |
-          DEPLOY_OUTPUT = $(gcloud functions deploy cr-bot-sjr-demo \
+          DEPLOY_OUTPUT=$(gcloud functions deploy cr-bot-sjr-demo \
             --gen2 \
             --runtime=nodejs20 \
             --region=${{ secrets.GCP_REGION }} \
