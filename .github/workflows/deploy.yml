@@ -41,7 +41,7 @@ jobs:
       
       - name: Deploy to Cloud Functions
         run: |
-          gcloud functions deploy cr-bot-sjr-demo \
+          DEPLOY_OUTPUT = $(gcloud functions deploy cr-bot-sjr-demo \
             --gen2 \
             --runtime=nodejs20 \
             --region=${{ secrets.GCP_REGION }} \
@@ -49,4 +49,15 @@ jobs:
             --entry-point=webhookHandler \
             --trigger-http \
             --allow-unauthenticated \
-            --set-env-vars="APP_ID=${{ secrets.APP_ID }},PRIVATE_KEY=${{ secrets.PRIVATE_KEY }},WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
+            --set-env-vars="APP_ID=${{ secrets.APP_ID }},PRIVATE_KEY=${{ secrets.PRIVATE_KEY }},WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}")
+          echo "$DEPLOY_OUTPUT"
+          FUNCTION_URL=$(echo "$DEPLOY_OUTPUT" | grep "httpsTrigger.url" | awk '{print $2}')
+          echo "FUNCTION_URL=$FUNCTION_URL" >> $GITHUB_ENV
+
+      - name: Store Function URL in GitHub Variable
+        run: |
+          curl -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/variables/FUNCTION_URL \
+            -d '{"name": "FUNCTION_URL", "value": "${{ env.FUNCTION_URL }}"}'
