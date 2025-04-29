@@ -55,7 +55,7 @@ jobs:
 
       - name: Log Partial Token
         run: |
-          echo "Token hash: $$(echo $$GITHUB_TOKEN | sha256sum)"
+          echo "Token hash: $(echo $GITHUB_TOKEN | sha256sum)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
