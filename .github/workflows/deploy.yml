@@ -53,6 +53,11 @@ jobs:
           FUNCTION_URL=$(echo "$DEPLOY_OUTPUT" | grep "^url" | awk '{print $2}')
           echo "FUNCTION_URL=$FUNCTION_URL" >> $GITHUB_ENV
 
+      - name: Log Partial Token
+        run: echo "Token hash: $(echo $GITHUB_TOKEN | sha256sum)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Store Function URL in GitHub Variable
         run: |
           curl -X PATCH \
