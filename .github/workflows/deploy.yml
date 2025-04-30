@@ -43,9 +43,6 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
       
-      - name: Install GitHub CLI
-        run: sudo apt-get install gh
-      
       - name: Deploy to Cloud Functions
         run: |
           DEPLOY_OUTPUT=$(gcloud functions deploy cr-bot-sjr-demo \
@@ -60,16 +57,9 @@ jobs:
           FUNCTION_URL=$(echo "$DEPLOY_OUTPUT" | grep "^url" | awk '{print $2}')
           echo "FUNCTION_URL=$FUNCTION_URL" >> $GITHUB_ENV
 
-      - name: Test Token Permissions
-        run: |
-          curl -H "Authorization: Bearer $GITHUB_TOKEN" \
-               -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Store Function URL in GitHub Variable
         run: |
           gh variable set FUNCTION_URL --body "$FUNCTION_URL"
         env:
           FUNCTION_URL: ${{ env.FUNCTION_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
