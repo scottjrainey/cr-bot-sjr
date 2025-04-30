@@ -53,7 +53,10 @@ jobs:
             --entry-point=webhookHandler \
             --trigger-http \
             --allow-unauthenticated \
-            --set-env-vars="APP_ID=${{ secrets.APP_ID }},PRIVATE_KEY=${{ secrets.PRIVATE_KEY }},WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}")
+            --set-env-vars="APP_ID=${{ secrets.APP_ID }}" \
+            --set-env-vars="PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" \
+            --set-env-vars="WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}" \
+            --set-env-vars="OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}")
           FUNCTION_URL=$(echo "$DEPLOY_OUTPUT" | grep "^url" | awk '{print $2}')
           echo "FUNCTION_URL=$FUNCTION_URL" >> $GITHUB_ENV
 
