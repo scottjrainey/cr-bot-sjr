@@ -60,9 +60,14 @@ jobs:
           FUNCTION_URL=$(echo "$DEPLOY_OUTPUT" | grep "^url" | awk '{print $2}')
           echo "FUNCTION_URL=$FUNCTION_URL" >> $GITHUB_ENV
 
-      - name: Store Function URL in GitHub Variable
+      - name: Set Webhook URL
         run: |
-          gh variable set FUNCTION_URL --body "$FUNCTION_URL"
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            /app/hook/config \
+            -f url="$FUNCTION_URL" \
+            -f content_type="json" 
         env:
           FUNCTION_URL: ${{ env.FUNCTION_URL }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
