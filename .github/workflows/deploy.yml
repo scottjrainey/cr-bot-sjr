@@ -63,6 +63,7 @@ jobs:
 
       - name: Set Webhook URL
         run: |
+          gh auth status
           gh api \
             --method PATCH \
             -H "Accept: application/vnd.github+json" \
