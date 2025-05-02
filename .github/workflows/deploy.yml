@@ -61,15 +61,15 @@ jobs:
           FUNCTION_URL=$(echo "$DEPLOY_OUTPUT" | grep "^url" | awk '{print $2}')
           echo "FUNCTION_URL=$FUNCTION_URL" >> $GITHUB_ENV
 
-      - name: Set Webhook URL
-        run: |
-          gh auth status
-          gh api \
-            --method PATCH \
-            -H "Accept: application/vnd.github+json" \
-            /app/hook/config \
-            -f url="$FUNCTION_URL" \
-            -f content_type="json" 
-        env:
-          FUNCTION_URL: ${{ env.FUNCTION_URL }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Set Webhook URL
+      #   run: |
+      #     gh auth status
+      #     gh api \
+      #       --method PATCH \
+      #       -H "Accept: application/vnd.github+json" \
+      #       /app/hook/config \
+      #       -f url="$FUNCTION_URL" \
+      #       -f content_type="json" 
+      #   env:
+      #     FUNCTION_URL: ${{ env.FUNCTION_URL }}
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
