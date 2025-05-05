@@ -5,14 +5,41 @@
 import { describe, beforeEach, afterEach, test, expect, vi } from "vitest";
 import nock from "nock";
 import { Probot, ProbotOctokit } from "probot";
+import type { ApplicationFunction, Logger } from "probot";
 import type { PullRequestOpenedEvent } from "@octokit/webhooks-types";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 // Requiring our fixtures
-import pullRequestOpenedPayload from './fixtures/pull_request.opened.json' assert { type: 'json' };
-import responseCompare from './fixtures/response.compare.json' assert { type: 'json' };
+import pullRequestOpenedPayload from "./fixtures/pull_request.opened.json" assert { type: "json" };
+import responseCompare from "./fixtures/response.compare.json" assert { type: "json" };
+
+// Define the types locally instead of importing them from the module you'll mock
+interface MessageContentReview {
+  path: string;
+  body: string;
+  suggestion?: string;
+  line: number;
+  start_line?: number;
+};
+
+interface PromptStrings {
+  system: string;
+  user: string;
+  jsonFormatRequirement: string;
+};
+
+interface ContentReviewOptions {
+  path: string;
+  log: Logger; // Using 'any' for simplicity in tests
+  prompts: PromptStrings;
+};
+
+type CrRequestModuleDefaultFunction = (
+  patch: string,
+  options: ContentReviewOptions,
+) => Promise<MessageContentReview[]>;
 
 const reviewCreatedBody = {
   body: "Thanks for the PR!",
@@ -20,56 +47,61 @@ const reviewCreatedBody = {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const privateKey = fs.readFileSync(
-  path.join(__dirname, "fixtures/mock-cert.pem"),
-  "utf-8",
-);
+const privateKey = fs.readFileSync(path.join(__dirname, "fixtures/mock-cert.pem"), "utf-8");
 
-const mockConfigSettingsBuffer = Buffer.from(JSON.stringify({
-  prompts: {
-    system: "You are a code reviewer.",
-    user: "Review the following code diff:",
-    jsonFormatRequirement: "Return the review comments in JSON format.",
-  },
-}));
+const mockConfigSettingsBuffer = Buffer.from(
+  JSON.stringify({
+    prompts: {
+      system: "You are a code reviewer.",
+      user: "Review the following code diff:",
+      jsonFormatRequirement: "Return the review comments in JSON format.",
+    },
+  }),
+);
 
 describe("My Probot app", () => {
   let probot: Probot;
-  let myProbotApp: any;
-  let crRequest: any;
+  let myProbotApp: ApplicationFunction;
+  let crRequest: CrRequestModuleDefaultFunction;
 
   beforeEach(async () => {
     vi.doMock("../src/cr-request.js", () => ({
-      default: vi.fn().mockImplementation((patch, { path }) => {
+      default: vi.fn().mockImplementation((_patch, { path }) => {
         if (path === "src/app.module.ts") {
-          return Promise.resolve([{
-            path: "src/app.module.ts",
-            body: "The new imports for `TopWorkplacesModule` and `TopWorkplacesService` should be checked for proper functionality, as this could introduce new dependencies. Ensure that the new services are correctly implemented and do not conflict with existing services. It’s also important to validate that the `TopWorkplacesService` is declared and provided correctly without any initialization issues.",
-            suggestion: "// Ensure `TopWorkplacesService` is correctly implemented and used.\n// Check for any conflicts with other services.\n// Ensure all services are properly initialized.",
-            line: 6,
-            start_line: 4
-          }]);
+          return Promise.resolve([
+            {
+              path: "src/app.module.ts",
+              body: "The new imports for `TopWorkplacesModule` and `TopWorkplacesService` should be checked for proper functionality, as this could introduce new dependencies. Ensure that the new services are correctly implemented and do not conflict with existing services. It’s also important to validate that the `TopWorkplacesService` is declared and provided correctly without any initialization issues.",
+              suggestion:
+                "// Ensure `TopWorkplacesService` is correctly implemented and used.\n// Check for any conflicts with other services.\n// Ensure all services are properly initialized.",
+              line: 6,
+              start_line: 4,
+            },
+          ]);
         }
         if (path === "src/modules/top-workplaces/top-workplaces.service.spec.ts") {
-          return Promise.resolve([{
-            path: "src/modules/top-workplaces/top-workplaces.service.spec.ts",
-            body: "The test suite is set up correctly; however, consider adding more granular tests to verify specific functionalities of the `TopWorkplacesService`. This will ensure comprehensive coverage and help in identifying potential bugs within the service methods. Additionally, ensure that you handle any asynchronous operations appropriately by using async/await for tests that might involve promises. Without these tests, you may miss edge cases or unexpected behaviors.",
-            suggestion: "it('should return a list of workplaces', async () => {\n  const result = await service.getWorkplaces();\n  expect(result).toBeInstanceOf(Array);\n});",
-            line: 10,
-            start_line: 10
-          }]);
+          return Promise.resolve([
+            {
+              path: "src/modules/top-workplaces/top-workplaces.service.spec.ts",
+              body: "The test suite is set up correctly; however, consider adding more granular tests to verify specific functionalities of the `TopWorkplacesService`. This will ensure comprehensive coverage and help in identifying potential bugs within the service methods. Additionally, ensure that you handle any asynchronous operations appropriately by using async/await for tests that might involve promises. Without these tests, you may miss edge cases or unexpected behaviors.",
+              suggestion:
+                "it('should return a list of workplaces', async () => {\n  const result = await service.getWorkplaces();\n  expect(result).toBeInstanceOf(Array);\n});",
+              line: 10,
+              start_line: 10,
+            },
+          ]);
         }
         return Promise.resolve([]);
-      })
+      }),
     }));
-    // Now dynamically import your modules that use the mock
+    // Now dynamically import modules that use the mock
     const importedProbotApp = await import("../src/index.js");
     myProbotApp = importedProbotApp.default;
-    
+
     // Also import the mocked module for testing
     const crRequestModule = await import("../src/cr-request.js");
     crRequest = crRequestModule.default;
-    
+
     vi.stubEnv("OPENAI_API_KEY", "test-api-key");
     nock.disableNetConnect();
     probot = new Probot({
@@ -96,19 +128,19 @@ describe("My Probot app", () => {
   test("Gracefully bails if OPENAI_API_KEY is not set", async () => {
     const logInfoSpy = vi.spyOn(probot.log, "info").mockImplementation(() => {});
     vi.stubEnv("OPENAI_API_KEY", undefined);
-    
+
     await probot.receive({
       id: Math.random().toString(),
       name: "pull_request",
-      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent
+      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent,
     });
-    
+
     expect(logInfoSpy).toHaveBeenCalledWith("No OpenAI API key found. Skipping code review");
   });
 
   test("Gracefully bails if pull request is closed", async () => {
     const logDebugSpy = vi.spyOn(probot.log, "debug").mockImplementation(() => {});
-    
+
     await probot.receive({
       id: Math.random().toString(),
       name: "pull_request",
@@ -116,17 +148,17 @@ describe("My Probot app", () => {
         ...pullRequestOpenedPayload,
         pull_request: {
           ...pullRequestOpenedPayload.pull_request,
-          state: "closed"
-        }
-      } as unknown as PullRequestOpenedEvent
+          state: "closed",
+        },
+      } as unknown as PullRequestOpenedEvent,
     });
-    
+
     expect(logDebugSpy).toHaveBeenCalledWith("PR is closed or locked");
   });
 
   test("Gracefully bails if pull request is locked", async () => {
     const logDebugSpy = vi.spyOn(probot.log, "debug").mockImplementation(() => {});
-    
+
     await probot.receive({
       id: Math.random().toString(),
       name: "pull_request",
@@ -134,11 +166,11 @@ describe("My Probot app", () => {
         ...pullRequestOpenedPayload,
         pull_request: {
           ...pullRequestOpenedPayload.pull_request,
-          locked: true
-        }
-      } as unknown as PullRequestOpenedEvent
+          locked: true,
+        },
+      } as unknown as PullRequestOpenedEvent,
     });
-    
+
     expect(logDebugSpy).toHaveBeenCalledWith("PR is closed or locked");
   });
 
@@ -169,7 +201,7 @@ describe("My Probot app", () => {
       })
 
       // Start a new review with a comment for each file
-      .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body: any) => {
+      .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body) => {
         createReviewSpy(body);
         expect(body).toMatchObject(reviewCreatedBody);
         expect(body.comments).toBeDefined();
@@ -179,10 +211,10 @@ describe("My Probot app", () => {
       .reply(200);
 
     // Receive a webhook event
-    const result = await probot.receive({
+    await probot.receive({
       id: Math.random().toString(),
       name: "pull_request",
-      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent
+      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent,
     });
 
     expect(logDebugSpy).toHaveBeenCalledWith("No reviewable files changed");
@@ -219,14 +251,12 @@ describe("My Probot app", () => {
       .reply(200, {
         ...responseCompare,
         files: responseCompare.files.map((file, i) => {
-          return i === 2
-            ? { ...file, patch: "" }
-            : file;
+          return i === 2 ? { ...file, patch: "" } : file;
         }),
       })
 
       // Start a new review with a comment for each file
-      .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body: any) => {
+      .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body) => {
         createReviewSpy(body);
         expect(body).toMatchObject(reviewCreatedBody);
         expect(body.comments).toBeDefined();
@@ -236,10 +266,10 @@ describe("My Probot app", () => {
       .reply(200);
 
     // Receive a webhook event
-    const result = await probot.receive({
+    await probot.receive({
       id: Math.random().toString(),
       name: "pull_request",
-      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent
+      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent,
     });
 
     expect(logInfoSpy).toHaveBeenCalledWith(expect.stringContaining("no patch found"));
@@ -279,7 +309,7 @@ describe("My Probot app", () => {
       .reply(200, responseCompare)
 
       // Start a new review with a comment for each file
-      .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body: any) => {
+      .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body) => {
         createReviewSpy(body);
         expect(body).toMatchObject(reviewCreatedBody);
         expect(body.comments).toBeDefined();
@@ -289,10 +319,10 @@ describe("My Probot app", () => {
       .reply(200);
 
     // Receive a webhook event
-    const result = await probot.receive({
+    await probot.receive({
       id: Math.random().toString(),
       name: "pull_request",
-      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent
+      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent,
     });
 
     expect(logInfoSpy).toHaveBeenCalledWith(expect.stringContaining("patch too large"));
@@ -328,7 +358,7 @@ describe("My Probot app", () => {
       .reply(200, responseCompare)
 
       // Start a new review with a comment for each file
-      .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body: any) => {
+      .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body) => {
         createReviewSpy(body);
         expect(body).toMatchObject(reviewCreatedBody);
         expect(body.comments).toBeDefined();
@@ -338,10 +368,10 @@ describe("My Probot app", () => {
       .reply(200);
 
     // Receive a webhook event
-    const result = await probot.receive({
+    await probot.receive({
       id: Math.random().toString(),
       name: "pull_request",
-      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent
+      payload: pullRequestOpenedPayload as unknown as PullRequestOpenedEvent,
     });
 
     expect(crRequest).toHaveBeenCalledTimes(5);

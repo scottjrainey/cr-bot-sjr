@@ -2,7 +2,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { Logger } from "probot";
 
-interface MessageContentReview {
+export interface MessageContentReview {
   path: string;
   body: string;
   suggestion?: string;
@@ -10,7 +10,7 @@ interface MessageContentReview {
   start_line?: number;
 }
 
-interface ContentReviewOptions {
+export interface ContentReviewOptions {
   path: string;
   log: Logger;
   prompts: PromptStrings;
@@ -38,29 +38,29 @@ export const pullRequestReviewCommentSchema = {
         properties: {
           path: {
             type: "string",
-            description: "The file path where the comment is located"
+            description: "The file path where the comment is located",
           },
           body: {
             type: "string",
-            description: "The content of the review comment"
+            description: "The content of the review comment",
           },
           suggestion: {
             type: "string",
             description: "The code suggestion if any",
-            nullable: true
+            nullable: true,
           },
           line: {
             type: "integer",
-            description: "The line number in the file where the comment is located"
+            description: "The line number in the file where the comment is located",
           },
           start_line: {
             type: "integer",
             description: "The starting line number for multi-line comments",
-            nullable: true
-          }
-        }
-      }
-    }
+            nullable: true,
+          },
+        },
+      },
+    },
   },
   required: ["comments"],
 };
