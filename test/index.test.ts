@@ -5,7 +5,7 @@
 import { describe, beforeEach, afterEach, test, expect, vi } from "vitest";
 import nock from "nock";
 import { Probot, ProbotOctokit } from "probot";
-import type { ApplicationFunction } from "probot";
+import type { ApplicationFunction, Logger } from "probot";
 import type { PullRequestOpenedEvent } from "@octokit/webhooks-types";
 import fs from "node:fs";
 import path from "node:path";
@@ -32,7 +32,7 @@ interface PromptStrings {
 
 interface ContentReviewOptions {
   path: string;
-  log: any; // Using 'any' for simplicity in tests
+  log: Logger; // Using 'any' for simplicity in tests
   prompts: PromptStrings;
 };
 
