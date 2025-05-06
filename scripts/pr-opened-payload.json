@@ -1,0 +1,66 @@
+{
+  "action": "opened",
+  "number": 1,
+  "pull_request": {
+    "url": "https://api.github.com/repos/test-owner/test-repo/pulls/1",
+    "id": 123456789,
+    "node_id": "PR_abc123",
+    "html_url": "https://github.com/test-owner/test-repo/pull/1",
+    "state": "open",
+    "locked": false,
+    "title": "Test PR",
+    "user": {
+      "login": "test-user",
+      "id": 12345,
+      "type": "User"
+    },
+    "body": "This is a test PR.",
+    "created_at": "2025-05-08T00:00:00Z",
+    "updated_at": "2025-05-08T00:00:00Z",
+    "head": {
+      "label": "test-user:test-branch",
+      "ref": "test-branch",
+      "sha": "0123456789abcdef0123456789abcdef01234567",
+      "repo": {
+        "id": 12345,
+        "name": "test-repo",
+        "full_name": "test-owner/test-repo",
+        "owner": {
+          "login": "test-owner",
+          "id": 12345
+        },
+        "private": false
+      }
+    },
+    "base": {
+      "label": "test-owner:main",
+      "ref": "main",
+      "sha": "abcdef0123456789abcdef0123456789abcdef01",
+      "repo": {
+        "id": 12345,
+        "name": "test-repo",
+        "full_name": "test-owner/test-repo",
+        "owner": {
+          "login": "test-owner",
+          "id": 12345
+        },
+        "private": false
+      }
+    }
+  },
+  "repository": {
+    "id": 12345,
+    "name": "test-repo",
+    "full_name": "test-owner/test-repo",
+    "owner": {
+      "login": "test-owner",
+      "id": 12345
+    },
+    "private": false
+  },
+  "sender": {
+    "login": "test-user",
+    "id": 12345,
+    "type": "User"
+  }
+}

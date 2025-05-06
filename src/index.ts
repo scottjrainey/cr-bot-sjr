@@ -52,12 +52,14 @@ const probotApp = (app: Probot) => {
         return;
       }
 
+      console.time('compare-commits');
       const data = await context.octokit.repos.compareCommitsWithBasehead({
         owner,
         repo,
         basehead: `${pull_request.base.sha}...${pull_request.head.sha}`,
       });
       let { files: changedFiles, commits } = data.data;
+      console.timeEnd('compare-commits');
 
       changedFiles = changedFiles?.filter((file) => isMatch(file.filename));
 
@@ -66,10 +68,14 @@ const probotApp = (app: Probot) => {
         return;
       }
 
+      log.info(`Processing ${changedFiles.length} files for PR #${pull_request.number}`);
+
       // Assuming config is not null since that file exists in the repo
       // with default values
+      console.time('get-config');
       const config = (await context.config('cr-bot-sjr.yml')) as ConfigSettings;
-      const { prompts } = config
+      const { prompts } = config;
+      console.timeEnd('get-config');
 
       const fileReviewPromises = changedFiles.flatMap(async (file) => {
         const { filename, patch = "", status } = file;
@@ -86,8 +92,13 @@ const probotApp = (app: Probot) => {
         }
 
         try {
+          log.info(`Starting review for ${filename}`);
+          console.time(`review-${filename}`);
           const path = filename;
           const reviewComments = await crRequest(patch, { log, path, prompts });
+          console.timeEnd(`review-${filename}`);
+          
+          log.info(`Completed review for ${filename} with ${reviewComments.length} comments`);
           return reviewComments.map(({ body, suggestion, start_line, line }) => ({
             path,
             body: formatCommentBody(body, suggestion),
@@ -100,12 +111,17 @@ const probotApp = (app: Probot) => {
         }
       });
 
+      console.time('collect-reviews');
       const reviewArrays = await Promise.all(fileReviewPromises);
       const results = reviewArrays.flat();
       // Filter out null/undefined results and add valid comments
       const comments = results.filter(Boolean) as PullRequestReviewComment[];
+      console.timeEnd('collect-reviews');
+
+      log.info(`Submitting ${comments.length} review comments for PR #${pull_request.number}`);
 
       try {
+        console.time('create-review');
         await context.octokit.pulls.createReview({
           repo,
           owner,
@@ -116,6 +132,8 @@ const probotApp = (app: Probot) => {
           commit_id: commits[commits.length - 1].sha,
           comments,
         });  
+        console.timeEnd('create-review');
+        log.info(`Successfully submitted review for PR #${pull_request.number}`);
       } catch (e) {
         log.warn("Failed to create code review", e);
       }
@@ -126,14 +144,69 @@ const probotApp = (app: Probot) => {
 };
 
 export const webhookHandler = (req: Request, res: Response) => {
-  // Create a probot instance using the environment variables
-  const probot = createProbot();
-
-  // Use the middleware approach which is more efficient for serverless
-  const middleware = createNodeMiddleware(probotApp, { probot });
-
-  // Call the middleware with the request and response
-  middleware(req, res);
+  try {
+    // Log the incoming request
+    console.log("Received webhook:", req.headers['x-github-event']);
+    
+    // Check for health endpoint
+    if (req.path === '/health' || req.url === '/health') {
+      res.status(200).send('Health check OK');
+      return;
+    }
+    
+    // Acknowledge non-PR events immediately
+    const event = req.headers['x-github-event'] as string;
+    if (event !== 'pull_request') {
+      console.log(`Received ${event} event, acknowledging without processing`);
+      res.status(202).send('Event acknowledged');
+      return;
+    }
+    
+    // For PR events, extract action
+    if (event === 'pull_request') {
+      const action = req.body?.action;
+      // Only process opened or synchronized PRs
+      if (action !== 'opened' && action !== 'synchronize') {
+        console.log(`Received PR ${action} event, acknowledging without processing`);
+        res.status(202).send('Event acknowledged');
+        return;
+      }
+    }
+    
+    // Acknowledge receipt immediately to prevent timeout
+    res.status(202).send('Webhook received, processing asynchronously');
+    
+    // Create a probot instance using the environment variables
+    const probot = createProbot();
+    
+    // Process the webhook asynchronously after responding
+    setTimeout(() => {
+      try {
+        console.time('process-webhook');
+        const middleware = createNodeMiddleware(probotApp, { probot });
+        
+        // Create mock response object since we already responded
+        const mockRes = {
+          status: () => { return mockRes; },
+          send: () => { return mockRes; },
+          end: () => { return mockRes; }
+        } as any;
+        
+        middleware(req, mockRes);
+        console.timeEnd('process-webhook');
+      } catch (error) {
+        console.error("Error processing webhook asynchronously:", error instanceof Error ? error.message : 'Unknown error');
+      }
+    }, 0);
+    return;
+  } catch (error) {
+    console.error("Error in webhookHandler:", error instanceof Error ? error.message : 'Unknown error');
+    // Still try to respond even if there's an error
+    if (!res.headersSent) {
+      res.status(500).send(`Error processing webhook: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+    return;
+  }
 };
 
 export default probotApp;

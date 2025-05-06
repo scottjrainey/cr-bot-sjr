@@ -1,8 +1,23 @@
 FROM node:20-slim
-WORKDIR /usr/src/app
-COPY package.json package-lock.json ./
-RUN npm ci --production
-RUN npm cache clean --force
-ENV NODE_ENV="production"
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install pnpm and dependencies
+RUN npm install -g pnpm && pnpm install
+
+# Copy the rest of the application
 COPY . .
-CMD [ "npm", "start" ]
+
+# Build TypeScript
+RUN pnpm build
+
+# Expose the port the app runs on
+EXPOSE 8080
+
+# Set production environment
+ENV NODE_ENV="production"
+
+# Command to run the application
+CMD ["node", "lib/server.js"]
