@@ -8,7 +8,15 @@ app.use(express.json());
 
 // Main webhook endpoint
 app.post('/', (req, res) => {
-  webhookHandler(req, res);
+  try {
+    // Call the webhook handler and let it manage the response
+    webhookHandler(req, res);
+  } catch (error) {
+    console.error('Error in webhook endpoint:', error);
+    if (!res.headersSent) {
+      res.status(500).send('Internal server error');
+    }
+  }
 });
 
 // Health check endpoint
