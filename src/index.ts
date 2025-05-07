@@ -185,13 +185,24 @@ export const webhookHandler = (req: Request, res: Response) => {
         console.time('process-webhook');
         const middleware = createNodeMiddleware(probotApp, { probot });
         
-        // Create mock response object since we already responded
-        const mockRes = {
-          status: () => { return mockRes; },
-          send: () => { return mockRes; },
-          end: () => { return mockRes; }
-        } as any;
-        
+        // Create mock response object properly with self-reference
+        const mockRes: any = {
+          _self: null, // Placeholder that will hold reference to the complete object
+          status: function() {
+            console.log('Mock response status called');
+            return this._self; 
+          },
+          send: function(data: any) {
+            console.log('Mock response send called with:', typeof data === 'string' ? data.substring(0, 100) : typeof data);
+            return this._self; 
+          },
+          end: function() {
+            console.log('Mock response end called');
+            return this._self; 
+          }
+        };
+
+        mockRes._self = mockRes;
         middleware(req, mockRes);
         console.timeEnd('process-webhook');
       } catch (error) {
