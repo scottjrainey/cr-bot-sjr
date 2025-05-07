@@ -33,7 +33,8 @@ function formatCommentBody(body: string, suggestion = '') {
 
 const probotApp = (app: Probot) => {
   const { log } = app;
-  log.info("Probot started...");
+  // log.info("Probot started...");
+  console.info("Probot started...");
 
   app.on(
     ["pull_request.opened", "pull_request.synchronize"],
