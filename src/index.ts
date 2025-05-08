@@ -187,10 +187,10 @@ export const webhookHandler = (req: Request, res: Response) => {
       fatal: console.error.bind(console),
       child: () => logger
     } as unknown as Logger;
-    const defaults = {
+    const overrides = {
       log: logger,
     };
-    const probot = createProbot({ defaults });
+    const probot = createProbot({ overrides });
     
     // Process the webhook asynchronously after responding
     setTimeout(() => {
