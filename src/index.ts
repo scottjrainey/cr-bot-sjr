@@ -37,6 +37,9 @@ const probotApp = (app: Probot) => {
   app.on(
     ["pull_request.opened", "pull_request.synchronize"],
     async (context: Context<"pull_request">) => {
+      // TODO Remove after debugging
+      console.info("Inside app.on()");
+
       // Bail if there is no OpenAI API key
       if (!process.env.OPENAI_API_KEY) {
         log.info("No OpenAI API key found. Skipping code review");
