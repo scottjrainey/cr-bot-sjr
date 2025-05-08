@@ -1,4 +1,4 @@
-import { type Probot, type Context, createNodeMiddleware, createProbot } from "probot";
+import { type Probot, type Context, createNodeMiddleware, createProbot, type Logger } from "probot";
 import picomatch from "picomatch";
 import type { Request, Response } from "express";
 import crRequest, { type PromptStrings } from "./cr-request.js";
@@ -178,7 +178,19 @@ export const webhookHandler = (req: Request, res: Response) => {
     res.status(202).send('Webhook received, processing asynchronously');
     
     // Create a probot instance using the environment variables
-    const probot = createProbot();
+    const logger = {
+      trace: console.trace.bind(console),
+      debug: console.debug.bind(console),
+      info: console.info.bind(console),
+      warn: console.warn.bind(console),
+      error: console.error.bind(console),
+      fatal: console.error.bind(console),
+      child: () => logger
+    } as unknown as Logger;
+    const defaults = {
+      log: logger,
+    };
+    const probot = createProbot({ defaults });
     
     // Process the webhook asynchronously after responding
     setTimeout(() => {
@@ -187,23 +199,12 @@ export const webhookHandler = (req: Request, res: Response) => {
         const middleware = createNodeMiddleware(probotApp, { probot });
         
         // Create mock response object properly with self-reference
-        const mockRes: any = {
-          _self: null, // Placeholder that will hold reference to the complete object
-          status: function() {
-            console.log('Mock response status called');
-            return this._self; 
-          },
-          send: function(data: any) {
-            console.log('Mock response send called with:', typeof data === 'string' ? data.substring(0, 100) : typeof data);
-            return this._self; 
-          },
-          end: function() {
-            console.log('Mock response end called');
-            return this._self; 
-          }
-        };
+        const mockRes = {
+          status: () => mockRes,
+          send: (_data: unknown) => mockRes,
+          end: () => mockRes
+        } as unknown as Response;
 
-        mockRes._self = mockRes;
         middleware(req, mockRes);
         console.timeEnd('process-webhook');
       } catch (error) {
