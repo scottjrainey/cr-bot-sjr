@@ -186,6 +186,7 @@ export const webhookHandler = (req: Request, res: Response) => {
         res.status(202).send("Event acknowledged");
         return;
       }
+      console.log(JSON.stringify(req.body, null, 2));
     }
 
     // Acknowledge receipt immediately to prevent timeout
