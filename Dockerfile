@@ -14,7 +14,7 @@ COPY . .
 RUN pnpm build
 
 # Expose the port the app runs on
-EXPOSE 8080
+EXPOSE 3000
 
 # Set production environment
 ENV NODE_ENV="production"
