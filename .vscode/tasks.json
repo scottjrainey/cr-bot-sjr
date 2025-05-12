@@ -1,0 +1,30 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "start-smee",
+      "type": "shell",
+      "command": "npx smee-client --url https://smee.io/gRvaKuQRA13DZI1 --target http://localhost:3000",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$" // This pattern never matches any output
+        },
+        "background": {
+          "beginsPattern": "Connected", // When we see "Connected", the task is ready
+          "endsPattern": "^never$" // This pattern never matches, so task stays running
+        }
+      }
+    },
+    {
+      "label": "kill-smee",
+      "type": "shell",
+      "command": "pkill -f 'smee-client' || true",
+      "windows": {
+        "command": "taskkill /F /IM node.exe /FI \"WINDOWTITLE eq smee*\" || exit 0"
+      }
+    }
+  ]
+}
