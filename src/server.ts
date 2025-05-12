@@ -1,32 +1,47 @@
-import express from 'express';
-import { webhookHandler } from './index.js';
+import { Probot, Server } from 'probot';
+import probotApp from './index.js';
 
-const app = express();
+type ValidLogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
-// Parse JSON request bodies
-app.use(express.json());
+function getValidLogLevel() {
+  const level = process.env.LOG_LEVEL;
+  const validLevels = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
 
-// Main webhook endpoint
-app.post('/', (req, res) => {
-  try {
-    // Call the webhook handler and let it manage the response
-    webhookHandler(req, res);
-  } catch (error) {
-    console.error('Error in webhook endpoint:', error);
-    if (!res.headersSent) {
-      res.status(500).send('Internal server error');
-    }
+  if (level && validLevels.includes(level)) {
+    return level as ValidLogLevel;
   }
+
+  return 'info'; // Default log level
+}
+
+// Create a Probot server with your app
+const server = new Server({
+  webhookPath: '/',
+  Probot: Probot.defaults({
+    // These would be read from env vars automatically
+    appId: process.env.APP_ID,
+    privateKey: process.env.PRIVATE_KEY,
+    secret: process.env.WEBHOOK_SECRET,
+    logLevel: getValidLogLevel(),
+  })
 });
 
-// Health check endpoint
-app.get('/health', (_, res) => {
+// Load your app
+server.load(probotApp);
+
+// Add health check endpoint
+server.expressApp.get('/health', (_, res) => {
   res.status(200).send('OK');
 });
 
 // Start the server
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
+// const PORT = process.env.PORT || 8080;
+const PORT = 3000;
+// Set the port in the environment before starting
+process.env.PORT = PORT.toString();
+
+// Call start without arguments
+server.start().then(() => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check available at http://localhost:${PORT}/health`);
 });

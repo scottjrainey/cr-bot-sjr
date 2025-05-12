@@ -1,6 +1,9 @@
 import { type Probot, type Context, createNodeMiddleware, createProbot, type Logger } from "probot";
 import picomatch from "picomatch";
 import type { Request, Response } from "express";
+import fs from 'node:fs';
+import path from 'node:path';
+import yaml from 'js-yaml';
 import crRequest, { type PromptStrings } from "./cr-request.js";
 
 // .gitignore globs to include and ignore files
@@ -27,6 +30,12 @@ interface ConfigSettings {
 
 function formatCommentBody(body: string, suggestion = "") {
   return suggestion ? `${body}\n\n\`\`\`suggestion\n${suggestion}\n\`\`\`\n` : `${body}\n`;
+}
+
+function loadDefaultConfig() {
+  const configPath = path.join(process.cwd(), '.github', 'cr-bot-sjr.yml');
+  const fileContents = fs.readFileSync(configPath, 'utf8');
+  return yaml.load(fileContents) as ConfigSettings;
 }
 
 const probotApp = (app: Probot) => {
@@ -79,7 +88,8 @@ const probotApp = (app: Probot) => {
       // Assuming config is not null since that file exists in the repo
       // with default values
       console.time("get-config");
-      const config = (await context.config("cr-bot-sjr.yml")) as ConfigSettings;
+      console.log('Attempting to load config...');
+      const config = (await context.config("cr-bot-sjr.yml", loadDefaultConfig())) as ConfigSettings;
       const { prompts } = config;
       console.timeEnd("get-config");
 
@@ -186,7 +196,6 @@ export const webhookHandler = (req: Request, res: Response) => {
         res.status(202).send("Event acknowledged");
         return;
       }
-      console.log(JSON.stringify(req.body, null, 2));
     }
 
     // Acknowledge receipt immediately to prevent timeout
@@ -194,12 +203,12 @@ export const webhookHandler = (req: Request, res: Response) => {
 
     // Create a probot instance using the environment variables
     const logger = {
-      trace: console.trace.bind(console),
-      debug: console.debug.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-      fatal: console.error.bind(console),
+      trace: (err: string) => console.trace(err),
+      debug: (err: string) => console.debug(err),
+      info: (err: string) => console.info(err),
+      warn: (err: string) => console.warn(err),
+      error: (err: string) => console.error(err),
+      fatal: (err: string) => console.error(err),
       child: () => logger,
     } as unknown as Logger;
     const overrides = {
@@ -248,4 +257,3 @@ export const webhookHandler = (req: Request, res: Response) => {
 };
 
 export default probotApp;
-
