@@ -1,6 +1,8 @@
 import { Probot, Server } from 'probot';
 import probotApp from './index.js';
 
+const PORT = 8080;
+
 type ValidLogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 function getValidLogLevel() {
@@ -16,6 +18,7 @@ function getValidLogLevel() {
 
 // Create a Probot server with your app
 const server = new Server({
+  port: PORT,
   webhookPath: '/',
   Probot: Probot.defaults({
     // These would be read from env vars automatically
@@ -33,12 +36,6 @@ server.load(probotApp);
 server.expressApp.get('/health', (_, res) => {
   res.status(200).send('OK');
 });
-
-// Start the server
-// const PORT = process.env.PORT || 8080;
-const PORT = 3000;
-// Set the port in the environment before starting
-process.env.PORT = PORT.toString();
 
 // Call start without arguments
 server.start().then(() => {
