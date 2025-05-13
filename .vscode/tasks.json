@@ -6,7 +6,7 @@
     {
       "label": "start-smee",
       "type": "shell",
-      "command": "npx smee-client --url https://smee.io/gRvaKuQRA13DZI1 --target http://localhost:3000",
+      "command": "npx smee-client --url https://smee.io/gRvaKuQRA13DZI1 --target http://localhost:8080",
       "isBackground": true,
       "problemMatcher": {
         "pattern": {
