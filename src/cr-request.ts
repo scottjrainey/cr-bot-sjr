@@ -71,7 +71,7 @@ export default async (patch: string, options: ContentReviewOptions) => {
     path,
     prompts: { system, user, jsonFormatRequirement },
   } = options;
-  // TODO: Enable using other models like Ollma for onprem use
+
   const model = new ChatOpenAI({
     openAIApiKey: process.env.OPENAI_API_KEY,
     modelName: "gpt-4o-mini",
@@ -82,7 +82,35 @@ export default async (patch: string, options: ContentReviewOptions) => {
     new HumanMessage(`${user}\npath: ${path}\n${patch}`),
   ];
 
-  const response = await model.invoke(messages);
-  log.debug(`model response: ${JSON.stringify(response, null, 2)}`);
-  return response.comments as MessageContentReview[];
+  try {
+    const response = await model.invoke(messages);
+
+    // Log the raw response for debugging
+    log.debug('Raw model response:', {
+      responseType: typeof response,
+      responseString: JSON.stringify(response, null, 2)
+    });
+
+    // Add additional validation
+    if (!response || typeof response !== 'object' || !Array.isArray(response.comments)) {
+      log.error('Invalid response structure:', {
+        response,
+        path
+      });
+      return [];
+    }
+
+    return response.comments as MessageContentReview[];
+  } catch (error) {
+    // Enhanced error logging with all details in one log entry
+    log.error('Error in model response:', {
+      error,
+      path,
+      patchLength: patch.length,
+      stack: error instanceof Error ? error.stack : undefined,
+      message: error instanceof Error ? error.message : String(error)
+    });
+    
+    return [];
+  }
 };

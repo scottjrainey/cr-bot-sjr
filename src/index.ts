@@ -1,10 +1,27 @@
-import { type Probot, type Context, createNodeMiddleware, createProbot, type Logger } from "probot";
+import type { Probot, Context } from "probot";
 import picomatch from "picomatch";
-import type { Request, Response } from "express";
 import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 import crRequest, { type PromptStrings } from "./cr-request.js";
+
+// Format private key by replacing escaped newlines and ensuring proper PEM format
+const formatPrivateKey = (key: string | undefined): string | undefined => {
+  if (!key) return undefined;
+  
+  // Replace escaped newlines with actual newlines
+  let formattedKey = key.replace(/\\n/g, '\n');
+  
+  // Ensure key has proper PEM format
+  if (!formattedKey.endsWith('\n')) {
+    formattedKey += '\n';
+  }
+  
+  return formattedKey;
+};
+
+// Format the private key before it's used
+process.env.PRIVATE_KEY = formatPrivateKey(process.env.PRIVATE_KEY);
 
 // .gitignore globs to include and ignore files
 // TODO: better name for this variable and make configurable
@@ -17,11 +34,13 @@ const MAX_PATCH_LENGTH = process.env.MAX_PATCH_LENGTH
   ? Number(process.env.MAX_PATCH_LENGTH) || Number.POSITIVE_INFINITY
   : Number.POSITIVE_INFINITY;
 
-interface PullRequestReviewComment {
+// GitHub API comment interface
+export interface GitHubComment {
   path: string;
   body: string;
   line: number;
   start_line?: number;
+  suggestion?: string;
 }
 
 interface ConfigSettings {
@@ -30,6 +49,24 @@ interface ConfigSettings {
 
 function formatCommentBody(body: string, suggestion = "") {
   return suggestion ? `${body}\n\n\`\`\`suggestion\n${suggestion}\n\`\`\`\n` : `${body}\n`;
+}
+
+function sanitizeComment(comment: GitHubComment): GitHubComment {
+  // Ensure line is always > 0
+  const line = (!comment.line || comment.line <= 0) ? 1 : comment.line;
+
+  // Only include start_line if it's different from line and > 0
+  const sanitized: GitHubComment = {
+    path: comment.path,
+    body: comment.body,
+    line
+  };
+
+  if (comment.start_line && comment.start_line > 0 && comment.start_line !== line) {
+    sanitized.start_line = comment.start_line;
+  }
+
+  return sanitized;
 }
 
 function loadDefaultConfig() {
@@ -41,18 +78,13 @@ function loadDefaultConfig() {
 const probotApp = (app: Probot) => {
   const { log } = app;
   log.info("Probot started...");
-  console.info("Probot started...");
-
+  
   app.on(
     ["pull_request.opened", "pull_request.synchronize"],
     async (context: Context<"pull_request">) => {
-      // TODO Remove after debugging
-      console.info("Inside app.on()");
-
       // Bail if there is no OpenAI API key
       if (!process.env.OPENAI_API_KEY) {
         log.info("No OpenAI API key found. Skipping code review");
-        console.info("No OpenAI API key found. Skipping code review");
         return;
       }
 
@@ -61,7 +93,6 @@ const probotApp = (app: Probot) => {
 
       if (pull_request.state === "closed" || pull_request.locked) {
         log.debug("PR is closed or locked");
-        console.debug("PR is closed or locked");
         return;
       }
 
@@ -78,12 +109,10 @@ const probotApp = (app: Probot) => {
 
       if (!changedFiles?.length) {
         log.debug("No reviewable files changed");
-        console.debug("No reviewable files changed");
         return;
       }
 
       log.info(`Processing ${changedFiles.length} files for PR #${pull_request.number}`);
-      console.info(`Processing ${changedFiles.length} files for PR #${pull_request.number}`);
 
       // Assuming config is not null since that file exists in the repo
       // with default values
@@ -104,31 +133,25 @@ const probotApp = (app: Probot) => {
           log.info(
             patch ? `Skipping ${filename} patch too large` : `Skipping ${filename} no patch found`,
           );
-          console.info(
-            patch ? `Skipping ${filename} patch too large` : `Skipping ${filename} no patch found`,
-          );
           return [];
         }
 
         try {
           log.info(`Starting review for ${filename}`);
-          console.info(`Starting review for ${filename}`);
           console.time(`review-${filename}`);
           const path = filename;
           const reviewComments = await crRequest(patch, { log, path, prompts });
           console.timeEnd(`review-${filename}`);
 
           log.info(`Completed review for ${filename} with ${reviewComments.length} comments`);
-          console.info(`Completed review for ${filename} with ${reviewComments.length} comments`);
           return reviewComments.map(({ body, suggestion, start_line, line }) => ({
             path,
             body: formatCommentBody(body, suggestion),
             line,
-            start_line: line === start_line ? undefined : start_line,
+            start_line: line === start_line ? null : start_line,
           }));
         } catch (e) {
           log.warn(`Failed to create review for ${filename}, ${e}}`, e);
-          console.warn(`Failed to create review for ${filename}, ${e}}`, e);
           return [];
         }
       });
@@ -137,123 +160,35 @@ const probotApp = (app: Probot) => {
       const reviewArrays = await Promise.all(fileReviewPromises);
       const results = reviewArrays.flat();
       // Filter out null/undefined results and add valid comments
-      const comments = results.filter(Boolean) as PullRequestReviewComment[];
+      const comments = results.filter(Boolean) as GitHubComment[];
       console.timeEnd("collect-reviews");
 
       log.info(`Submitting ${comments.length} review comments for PR #${pull_request.number}`);
-      console.info(`Submitting ${comments.length} review comments for PR #${pull_request.number}`);
+      console.info('Comments structure:', JSON.stringify(comments, null, 2));
 
       try {
         console.time("create-review");
+        // Sanitize comments before sending to GitHub API
+        const sanitizedComments = comments.map(sanitizeComment);
+
         await context.octokit.pulls.createReview({
           repo,
           owner,
           pull_number: pull_request.number,
           body: "Thanks for the PR!",
           event: "COMMENT",
-          // commits[-1] is returning `undefined` here, using commits[commits.length - 1] instead
           commit_id: commits[commits.length - 1].sha,
-          comments,
+          comments: sanitizedComments,
         });
         console.timeEnd("create-review");
         log.info(`Successfully submitted review for PR #${pull_request.number}`);
-        console.info(`Successfully submitted review for PR #${pull_request.number}`);
       } catch (e) {
         log.warn("Failed to create code review", e);
-        console.warn("Failed to create code review", e);
       }
 
       return;
     },
   );
-};
-
-export const webhookHandler = (req: Request, res: Response) => {
-  try {
-    // Log the incoming request
-    console.log("Received webhook:", req.headers["x-github-event"]);
-
-    // Check for health endpoint
-    if (req.path === "/health" || req.url === "/health") {
-      res.status(200).send("Health check OK");
-      return;
-    }
-
-    // Acknowledge non-PR events immediately
-    const event = req.headers["x-github-event"] as string;
-    if (event !== "pull_request") {
-      console.log(`Received ${event} event, acknowledging without processing`);
-      res.status(202).send("Event acknowledged");
-      return;
-    }
-
-    // For PR events, extract action
-    if (event === "pull_request") {
-      const action = req.body?.action;
-      // Only process opened or synchronized PRs
-      if (action !== "opened" && action !== "synchronize") {
-        console.log(`Received PR ${action} event, acknowledging without processing`);
-        res.status(202).send("Event acknowledged");
-        return;
-      }
-    }
-
-    // Acknowledge receipt immediately to prevent timeout
-    res.status(202).send("Webhook received, processing asynchronously");
-
-    // Create a probot instance using the environment variables
-    const logger = {
-      trace: (err: string) => console.trace(err),
-      debug: (err: string) => console.debug(err),
-      info: (err: string) => console.info(err),
-      warn: (err: string) => console.warn(err),
-      error: (err: string) => console.error(err),
-      fatal: (err: string) => console.error(err),
-      child: () => logger,
-    } as unknown as Logger;
-    const overrides = {
-      log: logger,
-    };
-    const probot = createProbot({ overrides });
-
-    // Process the webhook asynchronously after responding
-    setTimeout(() => {
-      try {
-        console.time("process-webhook");
-        const middleware = createNodeMiddleware(probotApp, { probot });
-
-        // Create mock response object properly with self-reference
-        const mockRes = {
-          status: () => mockRes,
-          send: (_data: unknown) => mockRes,
-          end: () => mockRes,
-        } as unknown as Response;
-
-        middleware(req, mockRes);
-        console.timeEnd("process-webhook");
-      } catch (error) {
-        console.error(
-          "Error processing webhook asynchronously:",
-          error instanceof Error ? error.message : "Unknown error",
-        );
-      }
-    }, 0);
-    return;
-  } catch (error) {
-    console.error(
-      "Error in webhookHandler:",
-      error instanceof Error ? error.message : "Unknown error",
-    );
-    // Still try to respond even if there's an error
-    if (!res.headersSent) {
-      res
-        .status(500)
-        .send(
-          `Error processing webhook: ${error instanceof Error ? error.message : "Unknown error"}`,
-        );
-    }
-    return;
-  }
 };
 
 export default probotApp;
