@@ -1,0 +1,23 @@
+name: Code Review
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: scottjrainey/cr-bot-sjr@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          APP_ID: ${{ secrets.APP_ID }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          LOG_LEVEL: info
+          INCLUDE_FILES: '**/*.js,**/*.ts'
