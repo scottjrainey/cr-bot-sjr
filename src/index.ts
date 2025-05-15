@@ -1,6 +1,5 @@
-import { type Probot, type Context, createNodeMiddleware, createProbot, type Logger } from "probot";
+import type { Probot, Context } from "probot";
 import picomatch from "picomatch";
-import type { Request, Response } from "express";
 import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
@@ -169,94 +168,6 @@ const probotApp = (app: Probot) => {
       return;
     },
   );
-};
-
-export const webhookHandler = (req: Request, res: Response) => {
-  try {
-    // Log the incoming request
-    console.log("Received webhook:", req.headers["x-github-event"]);
-
-    // Check for health endpoint
-    if (req.path === "/health" || req.url === "/health") {
-      res.status(200).send("Health check OK");
-      return;
-    }
-
-    // Acknowledge non-PR events immediately
-    const event = req.headers["x-github-event"] as string;
-    if (event !== "pull_request") {
-      console.log(`Received ${event} event, acknowledging without processing`);
-      res.status(202).send("Event acknowledged");
-      return;
-    }
-
-    // For PR events, extract action
-    if (event === "pull_request") {
-      const action = req.body?.action;
-      // Only process opened or synchronized PRs
-      if (action !== "opened" && action !== "synchronize") {
-        console.log(`Received PR ${action} event, acknowledging without processing`);
-        res.status(202).send("Event acknowledged");
-        return;
-      }
-    }
-
-    // Acknowledge receipt immediately to prevent timeout
-    res.status(202).send("Webhook received, processing asynchronously");
-
-    // Create a probot instance using the environment variables
-    const logger = {
-      trace: (err: string) => console.trace(err),
-      debug: (err: string) => console.debug(err),
-      info: (err: string) => console.info(err),
-      warn: (err: string) => console.warn(err),
-      error: (err: string) => console.error(err),
-      fatal: (err: string) => console.error(err),
-      child: () => logger,
-    } as unknown as Logger;
-    const overrides = {
-      log: logger,
-    };
-    const probot = createProbot({ overrides });
-
-    // Process the webhook asynchronously after responding
-    setTimeout(() => {
-      try {
-        console.time("process-webhook");
-        const middleware = createNodeMiddleware(probotApp, { probot });
-
-        // Create mock response object properly with self-reference
-        const mockRes = {
-          status: () => mockRes,
-          send: (_data: unknown) => mockRes,
-          end: () => mockRes,
-        } as unknown as Response;
-
-        middleware(req, mockRes);
-        console.timeEnd("process-webhook");
-      } catch (error) {
-        console.error(
-          "Error processing webhook asynchronously:",
-          error instanceof Error ? error.message : "Unknown error",
-        );
-      }
-    }, 0);
-    return;
-  } catch (error) {
-    console.error(
-      "Error in webhookHandler:",
-      error instanceof Error ? error.message : "Unknown error",
-    );
-    // Still try to respond even if there's an error
-    if (!res.headersSent) {
-      res
-        .status(500)
-        .send(
-          `Error processing webhook: ${error instanceof Error ? error.message : "Unknown error"}`,
-        );
-    }
-    return;
-  }
 };
 
 export default probotApp;
