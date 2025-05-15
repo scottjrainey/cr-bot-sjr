@@ -53,7 +53,9 @@ const probotApp = (app: Probot) => {
       if (!process.env.OPENAI_API_KEY) {
         log.info("No OpenAI API key found. Skipping code review");
         console.info("No OpenAI API key found. Skipping code review");
-        console.info("env", Object.keys(process.env));
+        console.info("env keys:", Object.keys(process.env));
+        console.info("PRIVATE_KEY length:", process.env.PRIVATE_KEY?.length);
+        console.info("APP_ID present:", !!process.env.APP_ID);
         return;
       }
 
