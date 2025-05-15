@@ -126,7 +126,7 @@ const probotApp = (app: Probot) => {
             path,
             body: formatCommentBody(body, suggestion),
             line,
-            start_line: line === start_line ? undefined : start_line,
+            start_line: line === start_line ? null : start_line,
           }));
         } catch (e) {
           log.warn(`Failed to create review for ${filename}, ${e}}`, e);
@@ -144,18 +144,27 @@ const probotApp = (app: Probot) => {
 
       log.info(`Submitting ${comments.length} review comments for PR #${pull_request.number}`);
       console.info(`Submitting ${comments.length} review comments for PR #${pull_request.number}`);
+      console.info('Comments structure:', JSON.stringify(comments, null, 2));
 
       try {
         console.time("create-review");
+        // Ensure start_line is either a number or omitted entirely
+        const sanitizedComments = comments.map(comment => {
+          if (comment.start_line === null) {
+            const { start_line, ...rest } = comment;
+            return rest;
+          }
+          return comment;
+        });
+
         await context.octokit.pulls.createReview({
           repo,
           owner,
           pull_number: pull_request.number,
           body: "Thanks for the PR!",
           event: "COMMENT",
-          // commits[-1] is returning `undefined` here, using commits[commits.length - 1] instead
           commit_id: commits[commits.length - 1].sha,
-          comments,
+          comments: sanitizedComments,
         });
         console.timeEnd("create-review");
         log.info(`Successfully submitted review for PR #${pull_request.number}`);
