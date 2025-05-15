@@ -41,6 +41,32 @@ const probotApp = (app: Probot) => {
   const { log } = app;
   log.info("Probot started...");
   console.info("Probot started...");
+  
+  // Debug environment variables and private key format
+  const envVarNames = Object.keys(process.env).sort();
+  console.info("Available environment variables:", envVarNames);
+
+  // Check private key format without exposing contents
+  const privateKey = process.env.PRIVATE_KEY;
+  console.info("Private key analysis:", {
+    exists: !!privateKey,
+    length: privateKey?.length || 0,
+    format: {
+      startsWithBegin: privateKey?.startsWith('-----BEGIN'),
+      endsWithEnd: privateKey?.endsWith('-----\n'),
+      newlineCount: privateKey?.split('\n').length || 0,
+      containsRSAMarker: privateKey?.includes('RSA PRIVATE KEY'),
+      containsEscapedNewlines: privateKey?.includes('\\n'),
+      containsLiteralNewlines: privateKey?.includes('\n')
+    }
+  });
+
+  // Check if other required env vars are present
+  console.info("Required env vars status:", {
+    hasAppId: !!process.env.APP_ID,
+    hasWebhookSecret: !!process.env.WEBHOOK_SECRET,
+    hasOpenAIKey: !!process.env.OPENAI_API_KEY
+  });
 
   app.on(
     ["pull_request.opened", "pull_request.synchronize"],
