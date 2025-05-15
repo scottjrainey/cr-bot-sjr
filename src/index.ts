@@ -5,6 +5,24 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 import crRequest, { type PromptStrings } from "./cr-request.js";
 
+// Format private key by replacing escaped newlines and ensuring proper PEM format
+const formatPrivateKey = (key: string | undefined): string | undefined => {
+  if (!key) return undefined;
+  
+  // Replace escaped newlines with actual newlines
+  let formattedKey = key.replace(/\\n/g, '\n');
+  
+  // Ensure key has proper PEM format
+  if (!formattedKey.endsWith('\n')) {
+    formattedKey += '\n';
+  }
+  
+  return formattedKey;
+};
+
+// Format the private key before it's used
+process.env.PRIVATE_KEY = formatPrivateKey(process.env.PRIVATE_KEY);
+
 // .gitignore globs to include and ignore files
 // TODO: better name for this variable and make configurable
 const INCLUDE_FILES = "**/*.js,**/*.ts";
