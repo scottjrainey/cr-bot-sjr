@@ -93,16 +93,24 @@ export default async (patch: string, options: ContentReviewOptions) => {
 
     // Add additional validation
     if (!response || typeof response !== 'object' || !Array.isArray(response.comments)) {
-      log.error('Invalid response structure:', response);
+      log.error('Invalid response structure:', {
+        response,
+        path
+      });
       return [];
     }
 
     return response.comments as MessageContentReview[];
   } catch (error) {
-    log.error('Error in model response:', error);
-    if (error instanceof SyntaxError) {
-      log.error('JSON parsing error. Raw response:', error.message);
-    }
+    // Enhanced error logging with all details in one log entry
+    log.error('Error in model response:', {
+      error,
+      path,
+      patchLength: patch.length,
+      stack: error instanceof Error ? error.stack : undefined,
+      message: error instanceof Error ? error.message : String(error)
+    });
+    
     return [];
   }
 };

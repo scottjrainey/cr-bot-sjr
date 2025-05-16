@@ -35,11 +35,12 @@ const MAX_PATCH_LENGTH = process.env.MAX_PATCH_LENGTH
   : Number.POSITIVE_INFINITY;
 
 // GitHub API comment interface
-interface GitHubComment {
+export interface GitHubComment {
   path: string;
   body: string;
   line: number;
   start_line?: number;
+  suggestion?: string;
 }
 
 interface ConfigSettings {
@@ -77,47 +78,13 @@ function loadDefaultConfig() {
 const probotApp = (app: Probot) => {
   const { log } = app;
   log.info("Probot started...");
-  console.info("Probot started...");
   
-  // Debug environment variables and private key format
-  const envVarNames = Object.keys(process.env).sort();
-  console.info("Available environment variables:", envVarNames);
-
-  // Check private key format without exposing contents
-  const privateKey = process.env.PRIVATE_KEY;
-  console.info("Private key analysis:", {
-    exists: !!privateKey,
-    length: privateKey?.length || 0,
-    format: {
-      startsWithBegin: privateKey?.startsWith('-----BEGIN'),
-      endsWithEnd: privateKey?.endsWith('-----\n'),
-      newlineCount: privateKey?.split('\n').length || 0,
-      containsRSAMarker: privateKey?.includes('RSA PRIVATE KEY'),
-      containsEscapedNewlines: privateKey?.includes('\\n'),
-      containsLiteralNewlines: privateKey?.includes('\n')
-    }
-  });
-
-  // Check if other required env vars are present
-  console.info("Required env vars status:", {
-    hasAppId: !!process.env.APP_ID,
-    hasWebhookSecret: !!process.env.WEBHOOK_SECRET,
-    hasOpenAIKey: !!process.env.OPENAI_API_KEY
-  });
-
   app.on(
     ["pull_request.opened", "pull_request.synchronize"],
     async (context: Context<"pull_request">) => {
-      // TODO Remove after debugging
-      console.info("Inside app.on()");
-
       // Bail if there is no OpenAI API key
       if (!process.env.OPENAI_API_KEY) {
         log.info("No OpenAI API key found. Skipping code review");
-        console.info("No OpenAI API key found. Skipping code review");
-        // console.info("env keys:", Object.keys(process.env));
-        // console.info("PRIVATE_KEY length:", process.env.PRIVATE_KEY?.length);
-        // console.info("APP_ID present:", !!process.env.APP_ID);
         return;
       }
 
@@ -126,7 +93,6 @@ const probotApp = (app: Probot) => {
 
       if (pull_request.state === "closed" || pull_request.locked) {
         log.debug("PR is closed or locked");
-        console.debug("PR is closed or locked");
         return;
       }
 
@@ -143,12 +109,10 @@ const probotApp = (app: Probot) => {
 
       if (!changedFiles?.length) {
         log.debug("No reviewable files changed");
-        console.debug("No reviewable files changed");
         return;
       }
 
       log.info(`Processing ${changedFiles.length} files for PR #${pull_request.number}`);
-      console.info(`Processing ${changedFiles.length} files for PR #${pull_request.number}`);
 
       // Assuming config is not null since that file exists in the repo
       // with default values
@@ -169,22 +133,17 @@ const probotApp = (app: Probot) => {
           log.info(
             patch ? `Skipping ${filename} patch too large` : `Skipping ${filename} no patch found`,
           );
-          console.info(
-            patch ? `Skipping ${filename} patch too large` : `Skipping ${filename} no patch found`,
-          );
           return [];
         }
 
         try {
           log.info(`Starting review for ${filename}`);
-          console.info(`Starting review for ${filename}`);
           console.time(`review-${filename}`);
           const path = filename;
           const reviewComments = await crRequest(patch, { log, path, prompts });
           console.timeEnd(`review-${filename}`);
 
           log.info(`Completed review for ${filename} with ${reviewComments.length} comments`);
-          console.info(`Completed review for ${filename} with ${reviewComments.length} comments`);
           return reviewComments.map(({ body, suggestion, start_line, line }) => ({
             path,
             body: formatCommentBody(body, suggestion),
@@ -193,7 +152,6 @@ const probotApp = (app: Probot) => {
           }));
         } catch (e) {
           log.warn(`Failed to create review for ${filename}, ${e}}`, e);
-          console.warn(`Failed to create review for ${filename}, ${e}}`, e);
           return [];
         }
       });
@@ -206,7 +164,6 @@ const probotApp = (app: Probot) => {
       console.timeEnd("collect-reviews");
 
       log.info(`Submitting ${comments.length} review comments for PR #${pull_request.number}`);
-      console.info(`Submitting ${comments.length} review comments for PR #${pull_request.number}`);
       console.info('Comments structure:', JSON.stringify(comments, null, 2));
 
       try {
@@ -225,10 +182,8 @@ const probotApp = (app: Probot) => {
         });
         console.timeEnd("create-review");
         log.info(`Successfully submitted review for PR #${pull_request.number}`);
-        console.info(`Successfully submitted review for PR #${pull_request.number}`);
       } catch (e) {
         log.warn("Failed to create code review", e);
-        console.warn("Failed to create code review", e);
       }
 
       return;
