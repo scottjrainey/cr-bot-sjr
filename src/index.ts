@@ -34,7 +34,8 @@ const MAX_PATCH_LENGTH = process.env.MAX_PATCH_LENGTH
   ? Number(process.env.MAX_PATCH_LENGTH) || Number.POSITIVE_INFINITY
   : Number.POSITIVE_INFINITY;
 
-interface PullRequestReviewComment {
+// GitHub API comment interface
+interface GitHubComment {
   path: string;
   body: string;
   line: number;
@@ -47,6 +48,24 @@ interface ConfigSettings {
 
 function formatCommentBody(body: string, suggestion = "") {
   return suggestion ? `${body}\n\n\`\`\`suggestion\n${suggestion}\n\`\`\`\n` : `${body}\n`;
+}
+
+function sanitizeComment(comment: GitHubComment): GitHubComment {
+  // Ensure line is always > 0
+  const line = (!comment.line || comment.line <= 0) ? 1 : comment.line;
+
+  // Only include start_line if it's different from line and > 0
+  const sanitized: GitHubComment = {
+    path: comment.path,
+    body: comment.body,
+    line
+  };
+
+  if (comment.start_line && comment.start_line > 0 && comment.start_line !== line) {
+    sanitized.start_line = comment.start_line;
+  }
+
+  return sanitized;
 }
 
 function loadDefaultConfig() {
@@ -183,7 +202,7 @@ const probotApp = (app: Probot) => {
       const reviewArrays = await Promise.all(fileReviewPromises);
       const results = reviewArrays.flat();
       // Filter out null/undefined results and add valid comments
-      const comments = results.filter(Boolean) as PullRequestReviewComment[];
+      const comments = results.filter(Boolean) as GitHubComment[];
       console.timeEnd("collect-reviews");
 
       log.info(`Submitting ${comments.length} review comments for PR #${pull_request.number}`);
@@ -192,14 +211,8 @@ const probotApp = (app: Probot) => {
 
       try {
         console.time("create-review");
-        // Ensure start_line is either a number or omitted entirely
-        const sanitizedComments = comments.map(comment => {
-          if (comment.start_line === null) {
-            const { start_line, ...rest } = comment;
-            return rest;
-          }
-          return comment;
-        });
+        // Sanitize comments before sending to GitHub API
+        const sanitizedComments = comments.map(sanitizeComment);
 
         await context.octokit.pulls.createReview({
           repo,
