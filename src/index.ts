@@ -126,6 +126,7 @@ const probotApp = (app: Probot) => {
         const { filename, patch = "", status } = file;
 
         if (status !== "modified" && status !== "added") {
+          log.info(`Skipping ${filename} with status ${status} - only reviewing modified or added files`);
           return [];
         }
 
@@ -176,6 +177,22 @@ const probotApp = (app: Probot) => {
         // Sanitize comments before sending to GitHub API
         const sanitizedComments = comments.map(sanitizeComment);
 
+        // Filter out any comments that might cause issues
+        const validComments = sanitizedComments.filter(comment => {
+          if (!comment.path || !comment.body || typeof comment.line !== 'number') {
+            log.warn('Skipping invalid comment:', comment);
+            return false;
+          }
+          return true;
+        });
+
+        if (validComments.length === 0) {
+          log.warn('No valid comments to submit');
+          return;
+        }
+
+        log.info(`Submitting ${validComments.length} review comments for PR #${pull_request.number}`);
+
         await context.octokit.pulls.createReview({
           repo,
           owner,
@@ -183,12 +200,17 @@ const probotApp = (app: Probot) => {
           body: "Thanks for the PR!",
           event: "COMMENT",
           commit_id: commits[commits.length - 1].sha,
-          comments: sanitizedComments,
+          comments: validComments,
         });
         console.timeEnd("create-review");
         log.info(`Successfully submitted review for PR #${pull_request.number}`);
       } catch (e) {
-        log.warn("Failed to create code review", e);
+        log.error("Failed to create code review", {
+          error: e,
+          commentCount: comments.length,
+          firstComment: comments[0],
+          errorMessage: e instanceof Error ? e.message : String(e)
+        });
       }
 
       return;
