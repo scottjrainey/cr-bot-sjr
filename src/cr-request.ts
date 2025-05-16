@@ -10,6 +10,11 @@ export interface MessageContentReview {
   start_line?: number;
 }
 
+export interface ReviewResult {
+  error: boolean;
+  comments?: MessageContentReview[];
+}
+
 export interface ContentReviewOptions {
   path: string;
   log: Logger;
@@ -65,7 +70,7 @@ export const pullRequestReviewCommentSchema = {
   required: ["comments"],
 };
 
-export default async (patch: string, options: ContentReviewOptions) => {
+export default async (patch: string, options: ContentReviewOptions): Promise<ReviewResult> => {
   const {
     log,
     path,
@@ -95,12 +100,14 @@ export default async (patch: string, options: ContentReviewOptions) => {
     if (!response || typeof response !== 'object' || !Array.isArray(response.comments)) {
       log.error('Invalid response structure:', {
         response,
-        path
+        responseType: typeof response,
+        path,
+        rawResponse: response ? JSON.stringify(response) : 'null'
       });
-      return [];
+      return { error: true };
     }
 
-    return response.comments as MessageContentReview[];
+    return { error: false, comments: response.comments as MessageContentReview[] };
   } catch (error) {
     // Enhanced error logging with all details in one log entry
     log.error('Error in model response:', {
@@ -108,9 +115,10 @@ export default async (patch: string, options: ContentReviewOptions) => {
       path,
       patchLength: patch.length,
       stack: error instanceof Error ? error.stack : undefined,
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : String(error),
+      rawError: JSON.stringify(error, Object.getOwnPropertyNames(error))
     });
     
-    return [];
+    return { error: true };
   }
 };

@@ -140,11 +140,16 @@ const probotApp = (app: Probot) => {
           log.info(`Starting review for ${filename}`);
           console.time(`review-${filename}`);
           const path = filename;
-          const reviewComments = await crRequest(patch, { log, path, prompts });
+          const reviewResult = await crRequest(patch, { log, path, prompts });
           console.timeEnd(`review-${filename}`);
 
-          log.info(`Completed review for ${filename} with ${reviewComments.length} comments`);
-          return reviewComments.map(({ body, suggestion, start_line, line }) => ({
+          if (reviewResult.error || !reviewResult.comments) {
+            log.warn(`Skipping review for ${filename} due to error or missing comments`);
+            return [];
+          }
+
+          log.info(`Completed review for ${filename} with ${reviewResult.comments.length} comments`);
+          return reviewResult.comments.map(({ body, suggestion, start_line, line }) => ({
             path,
             body: formatCommentBody(body, suggestion),
             line,
