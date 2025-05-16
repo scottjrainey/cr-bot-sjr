@@ -11,20 +11,23 @@
     "github",
     "probot-app"
   ],
-  "main": "lib/index.js",
+  "main": "lib/server.js",
   "scripts": {
     "build": "tsc",
     "check": "biome check ./src",
     "format": "biome format ./src",
     "lint": "biome lint ./src",
-    "start": "probot run ./lib/index.js",
-    "server": "node lib/server.js",
-    "dev": "tsc -w & nodemon --watch lib lib/server.js",
-    "docker-build": "docker build -t cr-bot-sjr .",
-    "docker-run": "docker run -p 8080:8080 --env-file .env cr-bot-sjr",
-    "test-webhook": "node scripts/test-webhook.js",
-    "smee": "smee-client --url $WEBHOOK_PROXY_URL --target http://localhost:8080",
-    "test": "vitest"
+    "start": "node lib/server.js",
+    "dev": "nodemon --watch lib lib/server.js",
+    "dev:probot": "probot run ./lib/index.js",
+    "dev:watch": "tsc -w",
+    "docker:build": "docker build -t cr-bot-sjr .",
+    "docker:run": "docker run -p 8080:8080 --env-file .env cr-bot-sjr",
+    "test": "vitest",
+    "test:webhook": "node scripts/test-webhook.js",
+    "prepare": "npm run build",
+    "prestart": "npm run build",
+    "smee": "smee-client --url $WEBHOOK_PROXY_URL --target http://localhost:8080"
   },
   "dependencies": {
     "@google-cloud/functions-framework": "^3.5.1",
