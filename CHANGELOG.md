@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.0.3](https://github.com/scottjrainey/cr-bot-sjr/compare/cr-bot-sjr-v0.0.2...cr-bot-sjr-v0.0.3) (2025-05-19)
+
+
+### Bug Fixes
+
+* **versioning:** Update deploy to run on PR merge ([6f5c695](https://github.com/scottjrainey/cr-bot-sjr/commit/6f5c69534718c344d757cad59af54cad8305ad33))
+
 ## [0.0.2](https://github.com/scottjrainey/cr-bot-sjr/compare/cr-bot-sjr-v0.0.1...cr-bot-sjr-v0.0.2) (2025-05-19)
 
 
