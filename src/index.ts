@@ -5,6 +5,15 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 import crRequest, { type PromptStrings } from "./cr-request.js";
 
+// New feature: Enhanced error handling
+export const handleReviewError = (error: Error, log: { error: (msg: string) => void }) => {
+  log.error(`Review error: ${error.message}`);
+  return {
+    error: true,
+    message: error.message
+  };
+};
+
 // Format private key by replacing escaped newlines and ensuring proper PEM format
 const formatPrivateKey = (key: string | undefined): string | undefined => {
   if (!key) return undefined;
