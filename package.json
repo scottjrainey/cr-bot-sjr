@@ -27,8 +27,7 @@
     "test:webhook": "node scripts/test-webhook.js",
     "prepare": "npm run build",
     "prestart": "npm run build",
-    "smee": "smee-client --url $WEBHOOK_PROXY_URL --target http://localhost:8080",
-    "release": "standard-version"
+    "smee": "smee-client --url $WEBHOOK_PROXY_URL --target http://localhost:8080"
   },
   "dependencies": {
     "@google-cloud/functions-framework": "^3.5.1",
