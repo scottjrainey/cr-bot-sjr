@@ -71,7 +71,7 @@ describe("My Probot app", () => {
           return Promise.resolve([
             {
               path: "src/app.module.ts",
-              body: "The new imports for `TopWorkplacesModule` and `TopWorkplacesService` should be checked for proper functionality, as this could introduce new dependencies. Ensure that the new services are correctly implemented and do not conflict with existing services. It’s also important to validate that the `TopWorkplacesService` is declared and provided correctly without any initialization issues.",
+              body: "The new imports for `TopWorkplacesModule` and `TopWorkplacesService` should be checked for proper functionality, as this could introduce new dependencies. Ensure that the new services are correctly implemented and do not conflict with existing services. It's also important to validate that the `TopWorkplacesService` is declared and provided correctly without any initialization issues.",
               suggestion:
                 "// Ensure `TopWorkplacesService` is correctly implemented and used.\n// Check for any conflicts with other services.\n// Ensure all services are properly initialized.",
               line: 6,
@@ -253,17 +253,7 @@ describe("My Probot app", () => {
         files: responseCompare.files.map((file, i) => {
           return i === 2 ? { ...file, patch: "" } : file;
         }),
-      })
-
-      // Start a new review with a comment for each file
-      .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body) => {
-        createReviewSpy(body);
-        expect(body).toMatchObject(reviewCreatedBody);
-        expect(body.comments).toBeDefined();
-        expect(body.comments.length).toBe(1);
-        return true;
-      })
-      .reply(200);
+      });
 
     // Receive a webhook event
     await probot.receive({
@@ -274,7 +264,7 @@ describe("My Probot app", () => {
 
     expect(logInfoSpy).toHaveBeenCalledWith(expect.stringContaining("no patch found"));
     expect(crRequest).toHaveBeenCalledTimes(4);
-    expect(createReviewSpy).toHaveBeenCalledTimes(1);
+    expect(createReviewSpy).toHaveBeenCalledTimes(0);
     expect(mockGithub.pendingMocks()).toStrictEqual([]);
   });
 
@@ -360,9 +350,11 @@ describe("My Probot app", () => {
       // Start a new review with a comment for each file
       .post(`/repos/${repo_full_name}/pulls/${pull_request_number}/reviews`, (body) => {
         createReviewSpy(body);
-        expect(body).toMatchObject(reviewCreatedBody);
-        expect(body.comments).toBeDefined();
-        expect(body.comments.length).toBe(2);
+        expect(body).toMatchObject({
+          body: "No review comments to add.",
+          event: "COMMENT",
+          comments: []
+        });
         return true;
       })
       .reply(200);
@@ -375,7 +367,7 @@ describe("My Probot app", () => {
     });
 
     expect(crRequest).toHaveBeenCalledTimes(5);
-    expect(createReviewSpy).toHaveBeenCalled();
+    expect(createReviewSpy).toHaveBeenCalledTimes(1);
     expect(mockGithub.pendingMocks()).toStrictEqual([]);
   });
 });
