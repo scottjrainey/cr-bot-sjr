@@ -102,7 +102,7 @@ const probotApp = (app: Probot) => {
         repo,
         basehead: `${pull_request.base.sha}...${pull_request.head.sha}`,
       });
-      let { files: changedFiles, commits } = data.data;
+      let { files: changedFiles } = data.data;
       console.timeEnd("compare-commits");
 
       changedFiles = changedFiles?.filter((file) => isMatch(file.filename));
