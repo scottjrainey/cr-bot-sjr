@@ -1,6 +1,6 @@
 {
   "name": "cr-bot-sjr",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "Simple AI Code review bot",
   "author": "scottjrainey",
