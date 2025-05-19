@@ -18,27 +18,51 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+        with:
+          fetch-depth: 0  # Required for standard-version to work properly
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Bump version and create tag
+        run: pnpm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
       - name: Setup Google Cloud Auth
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-          
+
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
-      
+
       - name: Configure Docker
         run: gcloud auth configure-docker gcr.io
 
       - name: Build and push container
         run: |
-          docker build -t gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ github.sha }} .
-          docker push gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ github.sha }}
+          docker build -t gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }} .
+          docker push gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }}
 
       - name: Deploy to Cloud Run
         run: |
           DEPLOY_OUTPUT=$(gcloud run deploy cr-bot-sjr-demo \
-            --image gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ github.sha }} \
+            --image gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }} \
             --platform managed \
             --region ${{ secrets.GCP_REGION }} \
             --allow-unauthenticated \
