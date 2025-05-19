@@ -31,3 +31,12 @@ For more, check out the [Contributing Guide](CONTRIBUTING.md).
 ## License
 
 [ISC](LICENSE) © 2025 scottjrainey
+
+## Versioning
+
+This project uses [release-please](https://github.com/googleapis/release-please) for versioning. Commits should follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+- `feat:` - Minor version bump (1.x.0)
+- `fix:` - Patch version bump (1.0.x)
+- `feat!:` or `BREAKING CHANGE:` - Major version bump (x.0.0)
+- `chore:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:` - No version bump
