@@ -186,31 +186,18 @@ const probotApp = (app: Probot) => {
           return true;
         });
 
-        if (validComments.length === 0) {
-          log.warn('No valid comments to submit');
-          return;
-        }
-
-        log.info(`Submitting ${validComments.length} review comments for PR #${pull_request.number}`);
-
+        // Create a review even if there are no comments
         await context.octokit.pulls.createReview({
           repo,
           owner,
           pull_number: pull_request.number,
-          body: "Thanks for the PR!",
+          body: validComments.length > 0 ? "Thanks for the PR!" : "No review comments to add.",
           event: "COMMENT",
-          commit_id: commits[commits.length - 1].sha,
-          comments: validComments,
+          comments: validComments
         });
         console.timeEnd("create-review");
-        log.info(`Successfully submitted review for PR #${pull_request.number}`);
       } catch (e) {
-        log.error("Failed to create code review", {
-          error: e,
-          commentCount: comments.length,
-          firstComment: comments[0],
-          errorMessage: e instanceof Error ? e.message : String(e)
-        });
+        log.error(`Failed to create review: ${e}`);
       }
 
       return;
