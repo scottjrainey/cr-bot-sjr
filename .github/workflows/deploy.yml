@@ -8,10 +8,10 @@ on:
       - main
 
 permissions:
-  actions: write
   contents: write
-  id-token: write
+  pull-requests: write
   packages: write
+  id-token: write
 
 jobs:
   release:
