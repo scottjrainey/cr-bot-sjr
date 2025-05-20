@@ -49,12 +49,12 @@ jobs:
         id: get_version
         run: |
           if [ -n "${{ steps.release.outputs.tag_name }}" ]; then
-            VERSION="${{ steps.release.outputs.tag_name }}"
+            TAG="${{ steps.release.outputs.tag_name }}"
           else
             VERSION=$(cat .release-please-manifest.json | jq -r '."."')
+            PACKAGE_NAME=$(cat .release-please-config.json | jq -r '.packages.["."].["package-name"]')
+            TAG="${PACKAGE_NAME}-v${VERSION}"
           fi
-          PACKAGE_NAME=$(cat .release-please-config.json | jq -r '.packages["."].package-name')
-          TAG="${PACKAGE_NAME}-v${VERSION}"
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "Using tag: $TAG"
 
