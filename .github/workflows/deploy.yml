@@ -48,7 +48,7 @@ jobs:
       - name: Get version
         id: get_version
         run: |
-          if [ "${{ steps.release.outputs.release_created }}" = "true" ]; then
+          if [ -n "${{ steps.release.outputs.release_created }}" ] && [ "${{ steps.release.outputs.release_created }}" = "true" ]; then
             echo "VERSION=${{ steps.release.outputs.version }}" >> $GITHUB_ENV
           else
             MANIFEST_VERSION=$(cat .release-please-manifest.json | jq -r '."."')
