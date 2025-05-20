@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.0.4](https://github.com/scottjrainey/cr-bot-sjr/compare/cr-bot-sjr-v0.0.3...cr-bot-sjr-v0.0.4) (2025-05-20)
+
+
+### Bug Fixes
+
+* Removed unused job from deploy ([e890936](https://github.com/scottjrainey/cr-bot-sjr/commit/e8909362e3b074a151930296b0383f6aa3ad9fd4))
+* **versioning:** Add debugging and VERSION fallback logic to deploy ([b23f5f8](https://github.com/scottjrainey/cr-bot-sjr/commit/b23f5f8b02b91e448b1c9e631660d0d2aa31c0aa))
+* **versioning:** Change logic for passing ENV vars between jobs ([59b4e60](https://github.com/scottjrainey/cr-bot-sjr/commit/59b4e607e812959117b74eb570bdbbc5098318d6))
+* **versioning:** Debug statements for missing VERSION value in deploy job ([71119a3](https://github.com/scottjrainey/cr-bot-sjr/commit/71119a3e0e6f72f7b73256f2ecc4c47729dd838b))
+* **versioning:** Debugging and new logic for tagging in release job ([f9dbd79](https://github.com/scottjrainey/cr-bot-sjr/commit/f9dbd7975bef3e60e1eb5c1c7a35fe7f2b7df5ad))
+* **versioning:** Do not rely on release-please output variables ([2d58325](https://github.com/scottjrainey/cr-bot-sjr/commit/2d5832594b8d9db1cd25cf2c6efb50ad042d8f22))
+* **versioning:** Fix to gcr.io container name in deploy job ([2b1fe27](https://github.com/scottjrainey/cr-bot-sjr/commit/2b1fe2748c5fcf9e9b061c8dd3896581cba9eea2))
+* **versioning:** Update logic assign VERSION in release job ([e0f463f](https://github.com/scottjrainey/cr-bot-sjr/commit/e0f463f44e680735de9806228e928a83397a1623))
+* **versioning:** Update to VERSION setting logic in release step ([3e18cc8](https://github.com/scottjrainey/cr-bot-sjr/commit/3e18cc84f308fd5165ce7e981dda0e3bf7d7f2fb))
+* **versioning:** Update version of pnpm in deploy job ([d318783](https://github.com/scottjrainey/cr-bot-sjr/commit/d318783002bb93bf679a83e03d7782acea840f10))
+* **versoning:** Adjusted container labeling logic in release job ([30cbf37](https://github.com/scottjrainey/cr-bot-sjr/commit/30cbf3757eab850313cca9d996a78dd7a063ef6c))
+
 ## [0.0.3](https://github.com/scottjrainey/cr-bot-sjr/compare/cr-bot-sjr-v0.0.2...cr-bot-sjr-v0.0.3) (2025-05-19)
 
 
