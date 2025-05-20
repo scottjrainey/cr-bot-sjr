@@ -37,7 +37,7 @@ jobs:
 
   deploy:
     needs: release
-    if: ${{ needs.release.outputs.release_created || needs.release.outputs.pr_merged }}
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
