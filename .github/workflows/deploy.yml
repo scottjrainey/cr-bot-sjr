@@ -35,6 +35,24 @@ jobs:
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      - name: Debug Release Outputs
+        run: |
+          echo "Release outputs:"
+          echo "Tag name: ${{ steps.release.outputs.tag_name }}"
+          echo "Release created: ${{ steps.release.outputs.release_created }}"
+          echo "Upload URL: ${{ steps.release.outputs.upload_url }}"
+          echo "Version: ${{ steps.release.outputs.version }}"
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ steps.release.outputs.release_created }}" = "true" ]; then
+            echo "VERSION=${{ steps.release.outputs.version }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=$(cat .release-please-manifest.json | jq -r '."."')" >> $GITHUB_ENV
+          fi
+          echo "Using version: $VERSION"
+
   deploy:
     needs: release
     if: github.ref == 'refs/heads/main'
@@ -70,10 +88,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Get version
-        id: get_version
-        run: echo "VERSION=${{ needs.release.outputs.tag_name }}" >> $GITHUB_ENV
 
       - name: Setup Google Cloud Auth
         uses: google-github-actions/auth@v1
