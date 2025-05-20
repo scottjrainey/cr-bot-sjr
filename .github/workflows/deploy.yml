@@ -37,6 +37,18 @@ jobs:
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      - name: Update latest tag
+        if: steps.release.outputs.release_created == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: false
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Debug Release Outputs
         run: |
           echo "Release outputs:"
