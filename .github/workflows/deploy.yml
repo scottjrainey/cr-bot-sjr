@@ -48,8 +48,8 @@ jobs:
       - name: Get version
         id: get_version
         run: |
-          if [ -n "${{ steps.release.outputs.version }}" ]; then
-            VERSION="${{ steps.release.outputs.version }}"
+          if [ -n "${{ steps.release.outputs.tag_name }}" ]; then
+            VERSION="${{ steps.release.outputs.tag_name }}"
           else
             VERSION=$(cat .release-please-manifest.json | jq -r '."."')
           fi
@@ -105,13 +105,17 @@ jobs:
 
       - name: Build and push container
         run: |
-          docker build -t gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }} .
-          docker push gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }}
+          if [ -z "${{ env.VERSION }}" ]; then
+            echo "Error: VERSION is empty"
+            exit 1
+          fi
+          docker build -t "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }}" .
+          docker push "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }}"
 
       - name: Deploy to Cloud Run
         run: |
           DEPLOY_OUTPUT=$(gcloud run deploy cr-bot-sjr-demo \
-            --image gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }} \
+            --image "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }}" \
             --platform managed \
             --region ${{ secrets.GCP_REGION }} \
             --allow-unauthenticated \
