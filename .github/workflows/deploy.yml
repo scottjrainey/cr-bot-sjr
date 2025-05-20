@@ -53,8 +53,10 @@ jobs:
           else
             VERSION=$(cat .release-please-manifest.json | jq -r '."."')
           fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Using version: $VERSION"
+          PACKAGE_NAME=$(cat .release-please-config.json | jq -r '.packages["."].package-name')
+          TAG="${PACKAGE_NAME}-v${VERSION}"
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "Using tag: $TAG"
 
   deploy:
     needs: release
@@ -105,17 +107,17 @@ jobs:
 
       - name: Build and push container
         run: |
-          if [ -z "${{ env.VERSION }}" ]; then
-            echo "Error: VERSION is empty"
+          if [ -z "${{ env.TAG }}" ]; then
+            echo "Error: TAG is empty"
             exit 1
           fi
-          docker build -t "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }}" .
-          docker push "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }}"
+          docker build -t "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.TAG }}" .
+          docker push "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.TAG }}"
 
       - name: Deploy to Cloud Run
         run: |
           DEPLOY_OUTPUT=$(gcloud run deploy cr-bot-sjr-demo \
-            --image "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.VERSION }}" \
+            --image "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.TAG }}" \
             --platform managed \
             --region ${{ secrets.GCP_REGION }} \
             --allow-unauthenticated \
