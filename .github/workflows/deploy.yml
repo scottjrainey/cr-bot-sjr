@@ -108,16 +108,3 @@ jobs:
             --set-env-vars="OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}")
           SERVICE_URL=$(gcloud run services describe cr-bot-sjr-demo --format 'value(status.url)' --region ${{ secrets.GCP_REGION }})
           echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_ENV
-
-      # - name: Set Webhook URL
-      #   run: |
-      #     gh auth status
-      #     gh api \
-      #       --method PATCH \
-      #       -H "Accept: application/vnd.github+json" \
-      #       /app/hook/config \
-      #       -f url="$SERVICE_URL" \
-      #       -f content_type="json"
-      #   env:
-      #     SERVICE_URL: ${{ env.SERVICE_URL }}
-      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
