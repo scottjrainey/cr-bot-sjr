@@ -42,6 +42,8 @@ jobs:
           echo "Release created: ${{ steps.release.outputs.release_created }}"
           echo "Upload URL: ${{ steps.release.outputs.upload_url }}"
           echo "Version: ${{ steps.release.outputs.version }}"
+          echo "Manifest contents:"
+          cat .release-please-manifest.json
 
       - name: Get version
         id: get_version
@@ -49,7 +51,12 @@ jobs:
           if [ "${{ steps.release.outputs.release_created }}" = "true" ]; then
             echo "VERSION=${{ steps.release.outputs.version }}" >> $GITHUB_ENV
           else
-            echo "VERSION=$(cat .release-please-manifest.json | jq -r '."."')" >> $GITHUB_ENV
+            MANIFEST_VERSION=$(cat .release-please-manifest.json | jq -r '."."')
+            if [ -z "$MANIFEST_VERSION" ]; then
+              echo "Error: Could not read version from manifest file"
+              exit 1
+            fi
+            echo "VERSION=$MANIFEST_VERSION" >> $GITHUB_ENV
           fi
           echo "Using version: $VERSION"
 
