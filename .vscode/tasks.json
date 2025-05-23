@@ -6,16 +6,24 @@
     {
       "label": "start-smee",
       "type": "shell",
-      "command": "npx smee-client --url https://smee.io/gRvaKuQRA13DZI1 --target http://localhost:8080",
+      "command": "pnpm run smee",
       "isBackground": true,
       "problemMatcher": {
         "pattern": {
-          "regexp": "^$" // This pattern never matches any output
+          "regexp": "."
         },
         "background": {
-          "beginsPattern": "Connected", // When we see "Connected", the task is ready
-          "endsPattern": "^never$" // This pattern never matches, so task stays running
+          "activeOnStart": true,
+          "beginsPattern": "Forwarding",
+          "endsPattern": "Connected"
         }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "showReuseMessage": false,
+        "clear": true,
+        "close": true
       }
     },
     {
@@ -24,7 +32,37 @@
       "command": "pkill -f 'smee-client' || true",
       "windows": {
         "command": "taskkill /F /IM node.exe /FI \"WINDOWTITLE eq smee*\" || exit 0"
+      },
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared",
+        "close": true
       }
+    },
+    {
+      "label": "cleanup-terminals",
+      "type": "shell",
+      "command": "pkill -f 'node' || true",
+      "windows": {
+        "command": "taskkill /F /IM node.exe || exit 0"
+      },
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared",
+        "close": true
+      }
+    },
+    {
+      "label": "debug-with-smee",
+      "dependsOn": ["start-smee"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "cleanup-all",
+      "dependsOn": ["kill-smee", "cleanup-terminals"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
     }
   ]
 }
