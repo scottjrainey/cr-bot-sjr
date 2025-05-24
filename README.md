@@ -1,16 +1,18 @@
 # cr-bot-sjr
 
 > A simple **proof-of-concept** _AI_ code review bot using GitHub's
-> [Probot][probot], [Langchain][langchain], and [Google Cloud Run][cloud-run]
+> [Probot][probot], [LangChain][langchain], and [Google Cloud Run][cloud-run]
 > to experiment with _AI/LLM_ use in _CI/CD_ workflows on _serverless infrastructure_
 
 **< WARNING: NOT INTENDED FOR PRODUCTION USE >**\
-This started as personal project to experiment with Cursor as an IDE, code 0 to 1 on a project using AI assistance, and to write code that interacts with _LLM APIs_. I chose to use [Google Cloud Run][cloud-run] and [Probot][probot] (a part of the GitHub Actions universe) simply because I'd been using _AWS_ and _Jenkins_ at work.\
+This started as personal project to experiment with Cursor as an IDE, code 0 to 1 on a project using AI assistance, and to write code that interacts with _LLM APIs_. I chose to use [Google Cloud Run][cloud-run] and [Probot][probot] (a part of the GitHub Actions universe) simply because I'd been using _AWS_ and _Jenkins_ at work.
+
+To be clear, **this is not meant to compete with or replace Copilot**. It is meant to provide a workspace to play with LLMs in workflows. The prompts used in this project a makeshift and meant to generate demo output without much regard for quality of response. That said, prompts can be changed easily and set on a _per project_ basis.\
 **</ WARNING: NOT INTENDED FOR PRODUCTION USE >**
 
 ## TL;DR
 
-Experiment with LLMs in non-production GitHub workflows. Flesh out ideas around _prompt engineering_, CI/CD actions, and model differences by extending this skeleton. Fork this project, then use it to create your own GitHub app. Configure the app with the needed permissions and secrets. Deploy to GCR. Install and configure the app on a repo and start creating PRs to `main`.
+Experiment with LLMs in non-production GitHub workflows. Flesh out ideas around _prompt engineering_, _CI/CD_ actions, and _LLM_ model differences building on this skeleton. Fork this project, then use it to create your own GitHub app. Configure the app with the needed permissions and secrets. Deploy to [Google Cloud Run][cloud-run]. Install and configure the app on a repo and start creating PRs to `main`.
 
 ## Setup
 
@@ -27,13 +29,15 @@ Secrets can be stored with the app and used by all repositories that install the
 * `GCP_SA_KEY`\
   JSON key file for a Google Cloud Service Account with permissions to deploy to Cloud Run
 * `OPENAI_API_KEY`\
-  API key for OpenAI services used by LangChain for code review functionality ([Create an OpenAI api key][openai-api-key])
+  API key for OpenAI services used by LangChain for code review functionality ([Create an OpenAI api key][openai-api-key]). **Note:** The code can easily be adjusted to use any of the models LangChain supports
 * `PRIVATE_KEY`\
   The private key generated for your GitHub App during registration
 * `WEBHOOK_SECRET`\
   A secret token to validate webhook payloads from GitHub
 
 ### Google Cloud Run Setup
+
+Coming soon...
 
 ### First Deployment and Completing Setup
 
@@ -46,7 +50,22 @@ After deploying to Cloud Run for the first time, you need to update your app's w
 
 Your app will now receive webhook events at your Cloud Run service URL.
 
-## Some of the Interesting Parts...
+## Some of the Interesting Parts
+
+### Prompt and Model Related Logic
+
+#### `/src/cr-request.ts`
+
+* Interacts with the LLM models via LangChain
+* Sets a JSON schema for the LLM's response
+* Builds the complete prompt that is submitted _per patch_
+
+#### `/.github/cr-bot-sjr.yml`
+
+### `/src/index.ts`
+
+* `probotApp` that contains the logic executed durning the action
+* This is where to change the logic for when to call to `crReqeust`, which could make a large difference in how context could be provided to the LLM. The current process could be vastly improved, but was not the focus of this project.
 
 ## Docs for Context
 
@@ -79,15 +98,6 @@ If you have suggestions for how cr-bot-sjr could be improved, or want to report 
 
 For more, check out the [Contributing Guide][contributing].
 
-## Versioning
-
-This project uses [release-please][release-please] for semantic versioning. Commits should follow the [Conventional Commits][conventional-commits] specification:
-
-* `feat:` - Minor version bump (1.x.0)
-* `fix:` - Patch version bump (1.0.x)
-* `feat!:` or `BREAKING CHANGE:` - Major version bump (x.0.0)
-* `chore:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:` - No version bump
-
 ## License
 
 [MIT](LICENSE) © 2025 scottjrainey
@@ -97,6 +107,4 @@ This project uses [release-please][release-please] for semantic versioning. Comm
 [cloud-run]: https://cloud.google.com/run "Serverless container platform"
 [contributing]: CONTRIBUTING.md "Guidelines for contributing to this project"
 [setup]: SETUP.md "Create Your Own GitHub App"
-[release-please]: https://github.com/googleapis/release-please "Automated release management"
-[conventional-commits]: https://www.conventionalcommits.org/ "Specification for commit messages"
 [openai-api-key]: https://platform.openai.com/api-keys "OpenAI API Keys"
