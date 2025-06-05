@@ -1,18 +1,18 @@
 # cr-bot-sjr
 
 > A simple **proof-of-concept** _AI_ code review bot using GitHub's
-> [Probot][probot], [LangChain][langchain], and [Google Cloud Run][cloud-run]
-> to experiment with _AI/LLM_ use in _CI/CD_ workflows on _serverless infrastructure_
+> [Probot][probot], [LangChain][langchain], and [Langfuse][langfuse]
+> to experiment with _AI/LLM_ use, prompt management and versioning in _CI/CD_ workflows on _serverless infrastructure_
 
 **< WARNING: NOT INTENDED FOR PRODUCTION USE >**\
-This started as personal project to experiment with Cursor as an IDE, code 0 to 1 on a project using AI assistance, and to write code that interacts with _LLM APIs_. I chose to use [Google Cloud Run][cloud-run] and [Probot][probot] (a part of the GitHub Actions universe) simply because I'd been using _AWS_ and _Jenkins_ at work.
+This started as personal project to experiment with Cursor as an IDE, code 0 to 1 on a project using AI assistance, to write code that interacts with _LLM APIs_, and look at prompt management using [Langfuse][langfuse]. I chose to use [Probot][probot] (a part of the GitHub Actions universe) simply because I'd been using _AWS_ and _Jenkins_ at work.
 
-To be clear, **this is not meant to compete with or replace Copilot**. It is meant to provide a workspace to play with LLMs in workflows. The prompts used in this project a makeshift and meant to generate demo output without much regard for quality of response. That said, prompts can be changed easily and set on a _per project_ basis.\
+This is meant to provide a workbenc to play with LLMs in workflows. The prompts included in this project are makeshift and meant to generate demo output without much regard for quality of response. That is intentional and allows the prompts to be easily improved when exploring Langfuse. That said, prompts can be changed easily and set on a _per project_ basis to look at integrating in multiple types of codebases.\
 **</ WARNING: NOT INTENDED FOR PRODUCTION USE >**
 
 ## TL;DR
 
-Experiment with LLMs in non-production GitHub workflows. Flesh out ideas around _prompt engineering_, _CI/CD_ actions, and _LLM_ model differences building on this skeleton. Fork this project, then use it to create your own GitHub app. Configure the app with the needed permissions and secrets. Deploy to [Google Cloud Run][cloud-run]. Install and configure the app on a repo and start creating PRs to `main`.
+Experiment with LLMs in non-production GitHub workflows. Explore ideas around _prompt engineering_, _CI/CD_ actions, and _LLM_ model differences using this skeleton. Fork this project, then use it to create your own GitHub app. Configure the app with the needed permissions and secrets. Add starting prompts to Langfuse. Install and configure the app on a repo and start creating PRs to `main` with this codebase running locally.
 
 ## Setup
 
@@ -104,6 +104,7 @@ For more, check out the [Contributing Guide][contributing].
 
 [probot]: https://github.com/probot/probot "GitHub App framework"
 [langchain]: https://www.langchain.com/ "Framework for developing applications powered by language models"
+[langfuse]: https://langfuse.com/ "Open Source LLM Engineering Platform"
 [cloud-run]: https://cloud.google.com/run "Serverless container platform"
 [contributing]: CONTRIBUTING.md "Guidelines for contributing to this project"
 [setup]: SETUP.md "Create Your Own GitHub App"
