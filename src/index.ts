@@ -1,9 +1,6 @@
 import type { Probot, Context } from "probot";
 import picomatch from "picomatch";
-import fs from 'node:fs';
-import path from 'node:path';
-import yaml from 'js-yaml';
-import crRequest, { type PromptStrings } from "./cr-request.js";
+import crRequest from "./cr-request.js";
 
 // New feature: Enhanced error handling
 export const handleReviewError = (error: Error, log: { error: (msg: string) => void }) => {
@@ -52,10 +49,6 @@ export interface GitHubComment {
   suggestion?: string;
 }
 
-interface ConfigSettings {
-  prompts: PromptStrings;
-}
-
 function formatCommentBody(body: string, suggestion = "") {
   return suggestion ? `${body}\n\n\`\`\`suggestion\n${suggestion}\n\`\`\`\n` : `${body}\n`;
 }
@@ -78,11 +71,6 @@ function sanitizeComment(comment: GitHubComment): GitHubComment {
   return sanitized;
 }
 
-function loadDefaultConfig() {
-  const configPath = path.join(process.cwd(), '.github', 'cr-bot-sjr.yml');
-  const fileContents = fs.readFileSync(configPath, 'utf8');
-  return yaml.load(fileContents) as ConfigSettings;
-}
 
 const probotApp = (app: Probot) => {
   const { log } = app;
@@ -123,14 +111,6 @@ const probotApp = (app: Probot) => {
 
       log.info(`Processing ${changedFiles.length} files for PR #${pull_request.number}`);
 
-      // Assuming config is not null since that file exists in the repo
-      // with default values
-      console.time("get-config");
-      console.log('Attempting to load config...');
-      const config = (await context.config("cr-bot-sjr.yml", loadDefaultConfig())) as ConfigSettings;
-      const { prompts } = config;
-      console.timeEnd("get-config");
-
       const fileReviewPromises = changedFiles.flatMap(async (file) => {
         const { filename, patch = "", status } = file;
 
@@ -150,7 +130,7 @@ const probotApp = (app: Probot) => {
           log.info(`Starting review for ${filename}`);
           console.time(`review-${filename}`);
           const path = filename;
-          const reviewResult = await crRequest(patch, { log, path, prompts });
+          const reviewResult = await crRequest(patch, { log, path });
           console.timeEnd(`review-${filename}`);
 
           if (reviewResult.error || !reviewResult.comments) {

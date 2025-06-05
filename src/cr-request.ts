@@ -1,5 +1,6 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { Langfuse } from "langfuse";
 import type { Logger } from "probot";
 
 export interface MessageContentReview {
@@ -18,7 +19,6 @@ export interface ReviewResult {
 export interface ContentReviewOptions {
   path: string;
   log: Logger;
-  prompts: PromptStrings;
 }
 
 export interface PromptStrings {
@@ -74,20 +74,66 @@ export default async (patch: string, options: ContentReviewOptions): Promise<Rev
   const {
     log,
     path,
-    prompts: { system, user, jsonFormatRequirement },
   } = options;
 
-  const model = new ChatOpenAI({
-    openAIApiKey: process.env.OPENAI_API_KEY,
-    modelName: "gpt-4o-mini",
-  }).withStructuredOutput(pullRequestReviewCommentSchema);
+  // Log Langfuse configuration
+  log.info('Langfuse Configuration:', {
+    publicKey: process.env.LANGFUSE_PUBLIC_KEY ? `***${process.env.LANGFUSE_PUBLIC_KEY.slice(-4)}` : 'not set',
+    secretKey: process.env.LANGFUSE_SECRET_KEY ? `***${process.env.LANGFUSE_SECRET_KEY.slice(-4)}` : 'not set',
+    baseUrl: process.env.LANGFUSE_BASE_URL || 'not set'
+  });
 
-  const messages = [
-    new SystemMessage(`${system}\n${jsonFormatRequirement}`),
-    new HumanMessage(`${user}\npath: ${path}\n${patch}`),
-  ];
+  const langfuse = new Langfuse({
+    secretKey: process.env.LANGFUSE_SECRET_KEY,
+    publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+    baseUrl: process.env.LANGFUSE_BASE_URL,
+  });
+
+  // Create a new trace for this code review
+  const trace = langfuse.trace({
+    name: 'code-review',
+    metadata: {
+      path,
+      patchLength: patch.length
+    }
+  });
 
   try {
+    // Create a span for prompt fetching
+    const promptSpan = trace.span({
+      name: 'fetch-prompts',
+      input: { path }
+    });
+
+    const systemPrompt = await langfuse.getPrompt('cr-bot-sjr.system');
+    const userPrompt = await langfuse.getPrompt('cr-bot-sjr.user');
+
+    promptSpan.end({
+      output: {
+        systemPromptName: 'cr-bot-sjr.system',
+        userPromptName: 'cr-bot-sjr.user'
+      }
+    });
+
+    const model = new ChatOpenAI({
+      openAIApiKey: process.env.OPENAI_API_KEY,
+      modelName: "gpt-4o-mini",
+    }).withStructuredOutput(pullRequestReviewCommentSchema);
+
+    const messages = [
+      new SystemMessage({ content: systemPrompt.prompt }),
+      new HumanMessage({ content: `${userPrompt.prompt}\npath: ${path}\n${patch}` }),
+    ];
+
+    // Create a span for model invocation
+    const modelSpan = trace.span({
+      name: 'model-invocation',
+      input: {
+        path,
+        messages: messages.map(m => ({ role: m._getType(), content: m.content }))
+      }
+    });
+
     const response = await model.invoke(messages);
 
     // Log the raw response for debugging
@@ -104,8 +150,33 @@ export default async (patch: string, options: ContentReviewOptions): Promise<Rev
         path,
         rawResponse: response ? JSON.stringify(response) : 'null'
       });
+
+      modelSpan.end({
+        output: { error: 'Invalid response structure' },
+        level: 'ERROR'
+      });
+
+      trace.update({
+        output: { error: 'Invalid response structure' },
+        metadata: { error: 'Invalid response structure' }
+      });
+
       return { error: true };
     }
+
+    modelSpan.end({
+      output: {
+        commentsCount: response.comments.length,
+        comments: response.comments
+      }
+    });
+
+    trace.update({
+      output: { success: true },
+      metadata: {
+        commentsCount: response.comments.length
+      }
+    });
 
     return { error: false, comments: response.comments as MessageContentReview[] };
   } catch (error) {
@@ -118,7 +189,21 @@ export default async (patch: string, options: ContentReviewOptions): Promise<Rev
       message: error instanceof Error ? error.message : String(error),
       rawError: JSON.stringify(error, Object.getOwnPropertyNames(error))
     });
-    
+
+    trace.update({
+      output: { error: error instanceof Error ? error.message : String(error) },
+      metadata: {
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        } : String(error)
+      }
+    });
+
     return { error: true };
+  } finally {
+    // Ensure we flush any pending events
+    await langfuse.shutdownAsync();
   }
 };

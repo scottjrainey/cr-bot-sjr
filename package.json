@@ -19,16 +19,18 @@
     "lint": "biome lint ./src",
     "start": "node lib/server.js",
     "dev": "nodemon --watch lib lib/server.js",
-    "dev:probot": "probot run ./lib/index.js",
+    "dev:probot": "dotenv -- nodemon --watch 'src/**/*.ts' --exec 'tsc && probot run ./lib/index.js'",
     "dev:watch": "tsc -w",
     "docker:build": "docker build -t cr-bot-sjr .",
     "docker:run": "docker run -p 8080:8080 --env-file .env cr-bot-sjr",
+    "docker:smee": "dotenv -- pnpm run smee:client:docker",
     "test": "vitest",
     "test:webhook": "node scripts/test-webhook.js",
     "prepare": "pnpm run build",
     "prestart": "pnpm run build",
     "smee": "dotenv -- pnpm run smee:client",
-    "smee:client": "npx smee-client --url $WEBHOOK_PROXY_URL --target http://localhost:8080"
+    "smee:client": "npx smee-client --url $WEBHOOK_PROXY_URL --target http://localhost:3000",
+    "smee:client:docker": "npx smee-client --url $WEBHOOK_PROXY_URL --target http://localhost:8080"
   },
   "dependencies": {
     "@google-cloud/functions-framework": "^3.5.1",
@@ -37,6 +39,7 @@
     "express": "^4.18.2",
     "js-yaml": "^4.1.0",
     "langchain": "^0.3.19",
+    "langfuse": "^3.37.3",
     "node-fetch": "^3.3.2",
     "openai": "^4.91.1",
     "picomatch": "^4.0.2",
