@@ -1,6 +1,6 @@
 # .github/workflows/deploy.yml
 
-name: Deploy to Google Cloud Run
+name: Release and Tag
 
 on:
   push:
@@ -11,14 +11,11 @@ permissions:
   contents: write
   pull-requests: write
   packages: write
-  id-token: write
   issues: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ env.TAG }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -58,93 +55,3 @@ jobs:
           echo "Version: ${{ steps.release.outputs.version }}"
           echo "Manifest contents:"
           cat .release-please-manifest.json
-
-      - name: Get version
-        id: get_version
-        run: |
-          if [ -n "${{ steps.release.outputs.tag_name }}" ]; then
-            TAG="${{ steps.release.outputs.tag_name }}"
-          else
-            VERSION=$(cat .release-please-manifest.json | jq -r '."."')
-            PACKAGE_NAME=$(cat .release-please-config.json | jq -r '.packages.["."].["package-name"]')
-            TAG="${PACKAGE_NAME}-v${VERSION}"
-          fi
-          echo "TAG=$TAG" >> $GITHUB_ENV
-          echo "Using tag: $TAG"
-
-  deploy:
-    needs: release
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Set TAG from release job
-        run: echo "TAG=${{ needs.release.outputs.tag }}" >> $GITHUB_ENV
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-          run_install: false
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Setup Google Cloud Auth
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
-
-      - name: Configure Docker
-        run: gcloud auth configure-docker gcr.io
-
-      - name: Build and push container
-        run: |
-          if [ -z "${{ env.TAG }}" ]; then
-            echo "Error: TAG is empty"
-            exit 1
-          fi
-          docker build -t "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.TAG }}" .
-          docker push "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.TAG }}"
-
-      - name: Deploy to Cloud Run
-        run: |
-          DEPLOY_OUTPUT=$(gcloud run deploy cr-bot-sjr-demo \
-            --image "gcr.io/cr-bot-sjr-demo/cr-bot-sjr-demo:${{ env.TAG }}" \
-            --platform managed \
-            --region ${{ secrets.GCP_REGION }} \
-            --allow-unauthenticated \
-            --memory 2Gi \
-            --timeout 15m \
-            --min-instances 1 \
-            --concurrency 10 \
-            --set-env-vars="APP_ID=${{ secrets.APP_ID }}" \
-            --set-env-vars="PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" \
-            --set-env-vars="WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}" \
-            --set-env-vars="OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}")
-          SERVICE_URL=$(gcloud run services describe cr-bot-sjr-demo --format 'value(status.url)' --region ${{ secrets.GCP_REGION }})
-          echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_ENV
