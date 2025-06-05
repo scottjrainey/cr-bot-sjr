@@ -26,6 +26,9 @@ importers:
       langchain:
         specifier: ^0.3.19
         version: 0.3.20(@langchain/core@0.3.43(openai@4.92.1(ws@8.18.1)(zod@3.24.2)))(axios@1.8.4)(handlebars@4.7.8)(openai@4.92.1(ws@8.18.1)(zod@3.24.2))(ws@8.18.1)
+      langfuse:
+        specifier: ^3.37.3
+        version: 3.37.3
       node-fetch:
         specifier: ^3.3.2
         version: 3.3.2
@@ -1266,8 +1269,8 @@ packages:
     resolution: {integrity: sha512-GopVGCpVS1UKH75VKHGuQFqS1Gusej0z4FyQkPdwjil2gNIv+LNsqBlboOzpJFZKVT95GkCyWJbBSdFEFUWI2A==}
     engines: {node: '>=12'}
 
-  dotenv@16.4.7:
-    resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
+  dotenv@16.5.0:
+    resolution: {integrity: sha512-m/C+AwOAr9/W1UOIZUo232ejMNnJAJtYQjUbHoNTBNTJSvqzzDh7vnrei3o3r3m9blf6ZoDkvcw0VmozNRFJxg==}
     engines: {node: '>=12'}
 
   dunder-proto@1.0.1:
@@ -1715,6 +1718,14 @@ packages:
         optional: true
       typeorm:
         optional: true
+
+  langfuse-core@3.37.3:
+    resolution: {integrity: sha512-G4+BNiZLwFYWfrsz2n3k5klRXCpNiOTV9Om1SwJMarqB9yeQiFTGodbmOLimdjygIXnDC7FzZT2d7v2mjt5IDQ==}
+    engines: {node: '>=18'}
+
+  langfuse@3.37.3:
+    resolution: {integrity: sha512-xDbw3wRfdzfRfbxh47PpXMFhceNVAcby8LqZ9aRkBJSIgVVyR/INCkU0QpbckV0AI/BAvOgonK/rBrWByN4gZg==}
+    engines: {node: '>=18'}
 
   langsmith@0.3.15:
     resolution: {integrity: sha512-cv3ebg0Hh0gRbl72cv/uzaZ+KOdfa2mGF1s74vmB2vlNVO/Ap/O9RYaHV+tpR8nwhGZ50R3ILnTOwSwGP+XQxw==}
@@ -3904,13 +3915,13 @@ snapshots:
   dotenv-cli@8.0.0:
     dependencies:
       cross-spawn: 7.0.6
-      dotenv: 16.4.7
+      dotenv: 16.5.0
       dotenv-expand: 10.0.0
       minimist: 1.2.8
 
   dotenv-expand@10.0.0: {}
 
-  dotenv@16.4.7: {}
+  dotenv@16.5.0: {}
 
   dunder-proto@1.0.1:
     dependencies:
@@ -4435,6 +4446,14 @@ snapshots:
       - openai
       - ws
 
+  langfuse-core@3.37.3:
+    dependencies:
+      mustache: 4.2.0
+
+  langfuse@3.37.3:
+    dependencies:
+      langfuse-core: 3.37.3
+
   langsmith@0.3.15(openai@4.92.1(ws@8.18.1)(zod@3.24.2)):
     dependencies:
       '@types/uuid': 10.0.0
@@ -4795,7 +4814,7 @@ snapshots:
       bottleneck: 2.19.5
       commander: 12.1.0
       deepmerge: 4.3.1
-      dotenv: 16.4.7
+      dotenv: 16.5.0
       express: 5.1.0
       ioredis: 5.6.0
       js-yaml: 4.1.0
@@ -4804,7 +4823,7 @@ snapshots:
       pino: 9.6.0
       pino-http: 10.4.0
       pkg-conf: 3.1.0
-      update-dotenv: 1.1.1(dotenv@16.4.7)
+      update-dotenv: 1.1.1(dotenv@16.5.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -5210,9 +5229,9 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  update-dotenv@1.1.1(dotenv@16.4.7):
+  update-dotenv@1.1.1(dotenv@16.5.0):
     dependencies:
-      dotenv: 16.4.7
+      dotenv: 16.5.0
 
   util@0.12.5:
     dependencies:
