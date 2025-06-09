@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7](https://github.com/scottjrainey/cr-bot-sjr/compare/cr-bot-sjr-v0.0.6...cr-bot-sjr-v0.0.7) (2025-06-09)
+
+
+### Features
+
+* **langfuse:** Set up of Langfuse ([1f8ed10](https://github.com/scottjrainey/cr-bot-sjr/commit/1f8ed10dc72fd930a6a5bb3cfad36779b17b49b9))
+
 ## [0.0.6](https://github.com/scottjrainey/cr-bot-sjr/compare/cr-bot-sjr-v0.0.5...cr-bot-sjr-v0.0.6) (2025-05-28)
 
 
