@@ -6,7 +6,7 @@
 > [Probot][probot], [LangChain][langchain], and [Langfuse][langfuse]
 > to experiment with _AI/LLM_ use, prompt management and versioning in _CI/CD_ workflows on _serverless infrastructure_
 
-## --- DISCLAIMER: NOT INTENDED FOR PRODUCTION USE ---
+## --- NOT INTENDED FOR PRODUCTION USE ---
 
 This started as personal project to experiment with Cursor as an IDE, code 0 to 1 on a project using AI assistance, to write code that interacts with _LLM APIs_, and look at prompt management using [Langfuse][langfuse]. I chose to use [Probot][probot] (a part of the GitHub Actions universe) simply because I'd been using _AWS_ and _Jenkins_ at work.
 
@@ -14,7 +14,7 @@ This is meant to provide a "workbench" to play with LLMs in workflows. The promp
 
 ## TL;DR
 
-Experiment with LLMs in non-production GitHub workflows. Explore ideas around _prompt engineering_, _CI/CD_ actions, and _LLM_ model differences using this skeleton. Fork this project, then use it to create your own GitHub app. Configure the app with the needed permissions and secrets. If needed, create a [Langfuse][langfuse] account. Add initial prompts from `prompts/` to Langfuse. Install and configure the app on a repo and start creating PRs to `main` with this codebase running locally:
+Experiment with LLMs in non-production GitHub workflows. Explore ideas around _prompt engineering_, _CI/CD_ actions, and _LLM_ model differences using this skeleton. Fork this project, then use it to create your own GitHub app. Configure the app with the needed permissions and secrets. If needed, create a [Langfuse][langfuse] account, or spin up a local container. Add initial prompts from below. Install and configure the app on a repo and start creating PRs to `main` with this codebase running locally:
 
 In one terminal, start smee.io routing to the local machine:
 
@@ -136,6 +136,10 @@ This originally ran on [Google Cloud Run][cloud-run] with [Terraform][terraform]
 ### Better installation/setup experience
 
 More than a few people using this would justify some kind of setup script instead of these instructions.
+
+### Langfuse self hosted on a docker container
+
+[Langfuse][langfuse] has excellent documentaion on self hosting. It would not be much effort to include on a container in the codebase if there were compelling reasons to not use the cloud-based platform.
 
 [probot]: https://github.com/probot/probot "GitHub App framework"
 [langchain]: https://www.langchain.com/ "Framework for developing applications powered by language models"
