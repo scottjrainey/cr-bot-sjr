@@ -38,7 +38,7 @@ First, fork this repo and use it to [create a new GitHub App][setup]. Then creat
 
 These are generic, low-quality prompts to serve as starting points for experimenting with [Langfuse][langfuse]. Starting at this level makes any tuning done easily noticable and lets there be more rounds of revision when exploring the different parts of the overall system.
 
-#### Initial `system` Prompt
+#### Initial `cr-bot-sjr.system` Prompt
 
 ```text
 Provide your feedback in strict JSON format with the following structure, one JSON object per review. 
@@ -57,7 +57,7 @@ If there is one or more reviews where `this.ltgm == false`, do not incude items 
 Ensure your response is a valid JSON array with no other markup.
 ```
 
-#### Initial `user` Prompt
+#### Initial `cr-bot-sjr.user` Prompt
 
 ```text
 Please review the following code patch. Create a review for each chunk in the patch. 
