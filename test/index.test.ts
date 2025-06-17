@@ -1,5 +1,4 @@
 // Token for testing:
-// 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
 // Import everything EXCEPT myProbotApp and crRequest, which will be
 // imported dynamically after mocking
 import { describe, beforeEach, afterEach, test, expect, vi } from "vitest";
