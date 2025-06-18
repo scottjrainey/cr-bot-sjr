@@ -1,6 +1,6 @@
 {
   "name": "cr-bot-sjr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "AI-powered GitHub Code Review Bot with LangChain integration and improved error handling",
   "author": "scottjrainey",
